@@ -34,3 +34,7 @@ urlpatterns = [
     path("my-style/add-typed/", add_typed_post_view, name="add_typed_post"),
     path("my-style/save-prefs/", save_onboarding_inline, name="save_onboarding_inline"),
 ]
+
+# Serve media in dev OR when explicitly allowed
+if settings.DEBUG or os.getenv("SERVE_MEDIA", "true").lower() in ("1", "true", "yes"):
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
