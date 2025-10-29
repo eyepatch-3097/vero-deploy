@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: vero-deploy
+    env: python
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    startCommand: gunicorn seocreator.wsgi:application --workers=2 --threads=4 --timeout=120
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        sync: false
+      - key: DEBUG
+        value: "0"
+      - key: ALLOWED_HOSTS
+        value: "vero.dotswitch.space, YOUR-RENDER.onrender.com"
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: "gpt-5-mini"
+      - key: PEXELS_API_KEY
+        sync: false
+    disk:
+      name: media
+      mountPath: /var/media
+      sizeGB: 5
