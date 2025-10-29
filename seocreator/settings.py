@@ -29,9 +29,12 @@ PEXELS_API_KEY = os.getenv("PEXELS_API_KEY", "")
 SECRET_KEY = 'django-insecure-!^rb6tf8*2q3@9%=(f23nqpo67fcjv6s60i!5g5&s84qfk_ux1'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "0") == "1"
 
-ALLOWED_HOSTS = ["*.onrender.com","dotswitch.space","*.dotswitch.space","localhost","127.0.0.1"]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+if DEBUG and ("localhost" not in ALLOWED_HOSTS and "127.0.0.1" not in ALLOWED_HOSTS):
+    ALLOWED_HOSTS += ["localhost", "127.0.0.1"]
+
 CSRF_TRUSTED_ORIGINS = [
     *(f"https://{h}" for h in ALLOWED_HOSTS if h and h != "localhost" and h != "127.0.0.1")
 ]
@@ -87,7 +90,7 @@ DATABASES = {
     "default": dj_database_url.config(
         default=os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR/'db.sqlite3'}"),
         conn_max_age=600,
-        ssl_require=False,
+        ssl_require=True,
     )
 }
    
