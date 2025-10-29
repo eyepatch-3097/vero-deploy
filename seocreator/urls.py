@@ -8,6 +8,7 @@ from accounts.views import (
 )
 from django.contrib.auth.views import LogoutView
 from django.http import HttpResponse
+import os
 from accounts.views import my_style_view,add_typed_post_view,save_onboarding_inline, upload_file_view, delete_upload_view, regenerate_style_profile_view, credits_view, mock_add_credits, generate_view, history_view, content_detail_view, approve_content_view, improve_content_view, change_topic_view, calendar_view, auto_populate_view
 
 urlpatterns = [
