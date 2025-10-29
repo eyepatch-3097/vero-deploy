@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import dj_database_url
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -82,13 +83,29 @@ WSGI_APPLICATION = 'seocreator.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+_db_url = os.getenv("DATABASE_URL")
 
+if _db_url:
+    # Internal Render DB usually does not need SSL.
+    # Allow overriding with DB_SSL_REQUIRE env var: "true"/"false"
+    _ssl_require_env = os.getenv("DB_SSL_REQUIRE", "false").lower().strip()
+    _ssl_require = _ssl_require_env in ("1", "true", "yes")
+
+    DATABASES = {
+        "default": dj_database_url.parse(
+            _db_url,
+            conn_max_age=600,         # persistent connections
+            ssl_require=_ssl_require  # false for INTERNAL URL
+        )
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+   
 AUTH_USER_MODEL = "accounts.User"  # << custom user
 
 
