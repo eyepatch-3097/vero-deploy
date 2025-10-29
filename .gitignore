@@ -1,0 +1,16 @@
+# venv / secrets
+.venv/
+.env
+
+# compiled / caches
+__pycache__/
+*.pyc
+
+# local db & media
+db.sqlite3
+/media/
+staticfiles/
+
+# IDE
+.vscode/
+.idea/

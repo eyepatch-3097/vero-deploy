@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block content %}
+<style>
+  .feature-card{
+    text-align:center;
+    border: none;
+    background: #f8f9fb;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.05);
+    transition: all .2s ease;
+  }
+  .feature-card:hover{ transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.08);}
+  .feature-card img{ height:64px; opacity:.85; }
+  .feature-card h5{ font-weight:700; margin-top:.75rem; }
+  .feature-card ul{ text-align:left; margin:1rem auto 0; max-width:240px; color:#333; }
+</style>
+
+<div class="container">
+  <!-- Feature cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-4">
+      <div class="card feature-card p-4">
+        <img src="https://img.icons8.com/?size=100&id=0cmTm5lj3iVJ&format=png&color=000000" alt="Understands icon" class="mx-auto">
+        <h5>Vero Understands</h5>
+        <ul class="small">
+          <li>Reads your writing samples to learn tone and vocabulary</li>
+          <li>Builds an adaptive style profile unique to you</li>
+          <li>Understands what topics you usually cover</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4">
+        <img src="https://img.icons8.com/?size=100&id=ZgeuqAVHqED4&format=png&color=000000" alt="Plans icon" class="mx-auto">
+        <h5>Vero Plans</h5>
+        <ul class="small">
+          <li>Creates weekly and monthly content calendars</li>
+          <li>Aligns ideas with your topical pillars</li>
+          <li>Lets you auto-populate days with one click</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card feature-card p-4">
+        <img src="https://img.icons8.com/?size=100&id=Zdee9zmYrnty&format=png&color=000000" alt="Writes icon" class="mx-auto">
+        <h5>Vero Writes</h5>
+        <ul class="small">
+          <li>Generates SEO blogs and LinkedIn posts in your tone</li>
+          <li>Improves drafts based on feedback instantly</li>
+          <li>Publishes approved pieces to your channels</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Account + usage -->
+  <div class="row gy-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h5>Account</h5>
+          <p class="mb-1"><strong>Username:</strong> {{ user.username }}</p>
+          <p class="mb-1"><strong>Email:</strong> {{ user.email }}</p>
+          <p class="mb-1"><strong>Timezone:</strong> {{ user.timezone }}</p>
+          <p class="mb-0"><span class="badge text-bg-primary">Credits: {{ user.credits }}</span></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-body">
+          <h5>Usage</h5>
+          <ul class="mb-0">
+            <li>Blogs generated: {{ usage.blogs_generated }}</li>
+            <li>LinkedIn generated: {{ usage.linkedin_generated }}</li>
+            <li>Improvements: {{ usage.improvements }}</li>
+            <li>Last action: {{ usage.last_action|default:"—" }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

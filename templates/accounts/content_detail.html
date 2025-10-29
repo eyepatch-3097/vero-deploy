@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}{{ item.get_type_display }}: {{ item.topic }}{% endblock %}
+{% block content %}
+<div class="row gy-3">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="mb-2">{{ item.get_type_display }} • {{ item.topic }}</h5>
+        <span class="badge text-bg-secondary">{{ item.get_status_display }}</span>
+        <hr/>
+        {% if latest %}
+          {% if item.type == "BLOG" %}
+            <pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ latest.body_md }}</pre>
+            <h6>SEO Meta</h6>
+            <pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ latest.meta_json|json_script:"metaJson" }}</pre>
+            <script>
+              (function(){
+                const data = JSON.parse(document.getElementById('metaJson').textContent);
+                document.currentScript.previousElementSibling.textContent = JSON.stringify(data, null, 2);
+              })();
+            </script>
+          {% else %}
+            <pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ latest.body_md }}</pre>
+          {% endif %}
+        {% else %}
+          <p class="text-muted">No versions yet.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% if image_results %}
+<hr class="my-4">
+<h6 class="mb-2">Image ideas</h6>
+<p class="text-muted small mb-3">
+  Suggested search: <code>{{ image_query }}</code> • Results via Pexels. Please check usage details on the source page.
+</p>
+
+<style>
+  .img-card{
+    border: 0; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    transition: transform .15s ease, box-shadow .15s ease;
+    background:#fff;
+  }
+  .img-card:hover{ transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,.12); }
+  .img-card img{ width: 100%; height: 160px; object-fit: cover; display:block; }
+  .img-meta{ padding:.5rem .75rem; }
+  .btn-copy{ --bs-btn-padding-y:.25rem; --bs-btn-padding-x:.5rem; --bs-btn-font-size:.8rem; }
+  .credit { font-size: .8rem; }
+</style>
+
+<div class="row g-3">
+  {% for im in image_results %}
+  <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+    <div class="img-card">
+      <a href="{{ im.page }}" target="_blank" rel="noopener" title="{{ im.title }}">
+        <img src="{{ im.thumb }}" alt="{{ im.title|default:'Banner idea' }}">
+      </a>
+      <div class="img-meta">
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="credit text-truncate me-2">{% if im.credit_html %}{{ im.credit_html|safe }}{% else %}Pexels{% endif %}</span>
+          <button class="btn btn-outline-secondary btn-copy" data-url="{{ im.url }}">Copy link</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+  document.querySelectorAll('.btn-copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const url = btn.getAttribute('data-url');
+      try {
+        await navigator.clipboard.writeText(url);
+        const old = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(()=> btn.textContent = old, 1200);
+      } catch(e) {
+        alert('Could not copy. URL: ' + url);
+      }
+    });
+  });
+</script>
+{% endif %}
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+  <div class="card-body">
+    <h6 class="mb-3">Actions</h6>
+
+    <!-- Approve -->
+    <form method="post" action="{% url 'approve_content' item.id %}" class="mb-3">
+      {% csrf_token %}
+      <input type="hidden" name="confirm" value="on">
+      <button class="btn btn-success btn-sm" {% if item.status == "APPROVED" %}disabled{% endif %}>
+        Approve{% if item.status == "APPROVED" %}d{% endif %}
+      </button>
+      <small class="text-muted ms-2">No credits used</small>
+    </form>
+
+    <!-- Improve -->
+    <form method="post" action="{% url 'improve_content' item.id %}" class="mb-3 ai-action">
+      {% csrf_token %}
+      <div class="row g-2">
+        <div class="col-4">
+          <label class="form-label mb-0 small">Length</label>
+          <select name="length" class="form-select form-select-sm">
+            <option value="short">Short</option>
+            <option value="medium" selected>Medium</option>
+            <option value="long">Long</option>
+          </select>
+        </div>
+        <div class="col-4">
+          <label class="form-label mb-0 small">Tone</label>
+          <select name="tone" class="form-select form-select-sm">
+            <option value="as_is" selected>As is</option>
+            <option value="casual">More casual</option>
+            <option value="formal">More formal</option>
+          </select>
+        </div>
+        <div class="col-4 d-flex align-items-end">
+          <div class="form-check me-3">
+            <input class="form-check-input" type="checkbox" name="add_example" id="ex1">
+            <label class="form-check-label small" for="ex1">Add example</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="add_data" id="ex2">
+            <label class="form-check-label small" for="ex2">Add data</label>
+          </div>
+        </div>
+        <div class="col-12">
+          <input type="text" name="custom_note" class="form-control form-control-sm" placeholder="Optional nudge to the writer">
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary btn-sm">Improve (−1 credit)</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Change Topic -->
+    <form method="post" class="ai-action" action="{% url 'change_topic' item.id %}">
+      {% csrf_token %}
+      <div class="row g-2">
+        <div class="col-9">
+          <input type="text" name="new_topic" class="form-control form-control-sm" placeholder="New topic/title">
+        </div>
+        <div class="col-3 d-grid">
+          <button class="btn btn-warning btn-sm">Change Topic (−2 credits)</button>
+        </div>
+      </div>
+    </form>
+
+    <hr>
+    <p class="small text-muted mb-0">Latest version is shown on the left. Each Improve/Change creates a new version.</p>
+  </div>
+</div>
+  </div>
+</div>
+{% endblock %}

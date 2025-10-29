@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Onboarding{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h3 class="mb-3">Tell us more about you</h3>
+    <p class="text-muted">These details help us shape your Style Profile and daily content.</p>
+    <form method="post" novalidate class="card card-body ai-action">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-12">{{ form.writing_style_keywords.label_tag }} {{ form.writing_style_keywords }}</div>
+        <div class="col-12">{{ form.goals.label_tag }} {{ form.goals }}</div>
+        <div class="col-12">{{ form.topical_keywords.label_tag }} {{ form.topical_keywords }}</div>
+        <div class="col-12">{{ form.bio.label_tag }} {{ form.bio }}</div>
+        <div class="col-12">{{ form.style_self_desc.label_tag }} {{ form.style_self_desc }}</div>
+        <div class="col-12 col-md-6">{{ form.industry.label_tag }} {{ form.industry }}</div>
+      </div>
+      <button class="btn btn-success mt-3">Save & Continue</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load acc_extras %}
+{% block title %}Monthly Calendar{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'calendar' %}?month={{ prev_month }}&mode={{ mode }}">‹ {{ prev_month }}</a>
+  </div>
+  <div class="btn-group">
+    <a class="btn btn-sm {% if mode == 'grid' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+       href="{% url 'calendar' %}?month={{ year }}-{{ month }}&mode=grid">Grid</a>
+    <a class="btn btn-sm {% if mode == 'list' %}btn-primary{% else %}btn-outline-primary{% endif %}"
+       href="{% url 'calendar' %}?month={{ year }}-{{ month }}&mode=list">30-Day List</a>
+  </div>
+  <div>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'calendar' %}?month={{ next_month }}&mode={{ mode }}">{{ next_month }} ›</a>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <form method="post" class="ai-action" action="{% url 'auto_populate' %}" class="row g-2">
+      {% csrf_token %}
+      <div class="col-md-2">
+        <label class="form-label small mb-1">Type</label>
+        <select name="content_type" class="form-select form-select-sm">
+          <option value="BLOG">Blog (−6)</option>
+          <option value="LINKEDIN">LinkedIn (−2)</option>
+        </select>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label small mb-1">Dates (YYYY-MM-DD, one per line; max 7)</label>
+        <textarea name="dates" class="form-control form-control-sm" rows="2" placeholder="2025-11-03&#10;2025-11-05"></textarea>
+      </div>
+      <div class="col-md-2 d-grid align-items-end">
+        <button class="btn btn-primary btn-sm mt-4">Auto-Generate</button>
+      </div>
+    </form>
+    <div class="small text-muted mt-2">Uses your current Style Profile and deducts credits in one batch.</div>
+  </div>
+</div>
+
+{% if mode == 'grid' %}
+
+<div class="table-responsive">
+  <table class="table table-bordered align-middle text-center">
+    <thead class="table-light">
+      <tr>
+        <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for week in weeks %}
+        <tr>
+          {% for d in week %}
+            {% with key=d|date:"Y-m-d" %}
+              <td class="daybox {% if d.month != month %}muted{% endif %}">
+                <div class="d-flex justify-content-between">
+                  <strong>{{ d.day }}</strong>
+                  <div class="counts">
+                    {% with counts=counts_map|dict_get:key %}
+                      {% if counts %}
+                        {% if counts.BLOG %}<span class="badge text-bg-primary">B {{ counts.BLOG }}</span>{% endif %}
+                        {% if counts.LINKEDIN %}<span class="badge text-bg-info">LI {{ counts.LINKEDIN }}</span>{% endif %}
+                      {% endif %}
+                    {% endwith %}
+                  </div>
+                </div>
+                {% if d.month == month %}
+                  <div class="mt-2 d-grid gap-2">
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'generate' %}?date={{ key }}">Generate</a>
+                  </div>
+                {% endif %}
+              </td>
+            {% endwith %}
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+
+  </table>
+</div>
+{% endif %}
+
+{% if mode == 'list' %}
+<div class="card">
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 120px;">Date</th>
+          <th>Planned Items</th>
+          <th style="width: 160px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in day_list %}
+          {% with daykey=d|date:"Y-m-d" %}
+            {% with counts=counts_map|dict_get:daykey items=items_map|dict_get:daykey %}
+
+            <tr>
+                <td>
+                <div class="fw-semibold">{{ d|date:"Y-m-d" }}</div>
+                <div class="text-muted small">{{ d|date:"D" }}</div>
+                </td>
+                <td>
+                {% if counts %}
+                    {% if counts.BLOG %}<span class="badge text-bg-primary me-1">B {{ counts.BLOG }}</span>{% endif %}
+                    {% if counts.LINKEDIN %}<span class="badge text-bg-info me-1">LI {{ counts.LINKEDIN }}</span>{% endif %}
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+
+                {% if items %}
+                    <div class="mt-2 small">
+                    {% for it in items %}
+                        <div class="text-truncate">
+                        <a href="{% url 'content_detail' it.id %}">{{ it.get_type_display }} • {{ it.topic }}</a>
+                        <span class="text-muted">({{ it.get_status_display }})</span>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+                </td>
+                <td class="text-end">
+                <a class="btn btn-sm btn-outline-primary" href="{% url 'generate' %}?date={{ key }}">Generate</a>
+                </td>
+            </tr>
+            {% endwith %}
+          {% endwith %} 
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+<style>
+  .muted { opacity: .4; }
+  .daybox { min-height: 110px; text-align: left; padding: .5rem; }
+  .counts .badge { margin-right: .25rem; }
+</style>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+  {# Fallback: simple 30-day list if grid rendering is complex #}
+</div>
+
+<script>
+  // We’ll render grid via JS to keep template simple
+  (function(){
+    const data = {{ month_days|length }};
+  })();
+</script>
+{% endblock %}
