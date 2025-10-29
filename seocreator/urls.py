@@ -7,6 +7,7 @@ from accounts.views import (
     onboarding_view, profile_view
 )
 from django.contrib.auth.views import LogoutView
+from django.http import HttpResponse
 from accounts.views import my_style_view,add_typed_post_view,save_onboarding_inline, upload_file_view, delete_upload_view, regenerate_style_profile_view, credits_view, mock_add_credits, generate_view, history_view, content_detail_view, approve_content_view, improve_content_view, change_topic_view, calendar_view, auto_populate_view
 
 urlpatterns = [
@@ -33,6 +34,7 @@ urlpatterns = [
     path("calendar/auto-populate/", auto_populate_view, name="auto_populate"),
     path("my-style/add-typed/", add_typed_post_view, name="add_typed_post"),
     path("my-style/save-prefs/", save_onboarding_inline, name="save_onboarding_inline"),
+    path("healthz/", lambda r: HttpResponse("ok", content_type="text/plain")),
 ]
 
 # Serve media in dev OR when explicitly allowed
