@@ -1,1 +1,1 @@
-web: gunicorn seocreator.wsgi:application --bind 0.0.0.0:$PORT --timeout 120
+web: gunicorn seocreator.wsgi:application --workers=2 --threads=4 --timeout=120
