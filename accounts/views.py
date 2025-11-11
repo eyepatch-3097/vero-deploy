@@ -6,28 +6,131 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.db.models import Count, Max, Q
 from .forms import SignupForm, OnboardingForm, TypedPostForm
 from .models import Onboarding, User
-import os
+import os, base64, io, uuid
 from datetime import datetime, date, timedelta
 from zoneinfo import ZoneInfo
 from django.utils import timezone
 import calendar
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from .forms import UploadForm, GenerateContentForm, ApproveForm, ImproveForm, ChangeTopicForm, AutoPopulateForm
-from .models import Upload, StyleProfile, Onboarding, User, CreditTransaction, ContentItem, ContentVersion, GuidelineSchedule, GuidelinePillar
+from .models import Upload, StyleProfile, Onboarding, User, CreditTransaction, ContentItem, ContentVersion, GuidelineSchedule, GuidelinePillar, ContentHeroImage
 #from .utils import extract_text_from_file, simple_style_summary, record_credit_change, stub_generate_content, stub_improve_content, stub_change_topic_content
 from .ai_client import generate_blog, generate_style_fun_facts, generate_linkedin, improve_content as gpt_improve, change_topic as gpt_change
 from .ai_client import analyze_style_profile, generate_meta_from_body, suggest_image_search_term
 from django.core.paginator import Paginator
 from .utils import record_credit_change, extract_text_from_file, merge_user_inputs_into_profile_json, style_scores_from_profile
 from .images import search_images
+from openai import OpenAI
+import logging
+from django.conf import settings
+
 
 
 CREDIT_COSTS = {"BLOG": 6, "LINKEDIN": 2}
 IMPROVE_COST = 1
 CHANGE_TOPIC_COST = 2
+HERO_IMAGE_COST = 2
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+SIZE = "1024x1024"  # wide banner
+
+
+log = logging.getLogger(__name__)
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+HERO_IMAGE_COST = 2
+
+@login_required
+@require_POST
+def create_hero_image(request, item_id):
+    item = get_object_or_404(ContentItem, id=item_id, user=request.user)
+    latest = item.versions.order_by("-created_at").first()
+    if not latest or not latest.body_md:
+        return JsonResponse({"ok": False, "error": "No content to analyze"}, status=400)
+
+    # 1) Generate a concise image prompt
+    try:
+        prompt_resp = client.chat.completions.create(
+            model="gpt-5-mini",
+            messages=[
+                {"role": "system", "content": "You write precise image prompts for marketing hero banners."},
+                {"role": "user", "content":
+                    "Create ONE concise hero-image prompt for this content. "
+                    "Style: clean, modern, editorial, photographic, high contrast, brand-safe. "
+                    "No people's faces unless essential. Avoid text in image.\n\n"
+                    f"CONTENT:\n{latest.body_md[:12000]}"
+                },
+            ],
+        )
+        image_prompt = (prompt_resp.choices[0].message.content or "").strip()
+        if not image_prompt:
+            return JsonResponse({"ok": False, "error": "Empty image prompt."}, status=400)
+    except Exception as e:
+        log.exception("Prompt generation failed")
+        return JsonResponse({"ok": False, "error": f"Prompt generation failed: {e}"}, status=500)
+
+    # 2) Create the image (single size), retry once on transient 5xx
+    def _gen():
+        return client.images.generate(model="gpt-image-1", prompt=image_prompt, size=SIZE)
+
+    img_resp = None
+    try:
+        log.info("Calling images.generate size=%s", SIZE)
+        img_resp = _gen()
+    except Exception as e:
+        # retry on gateway/network errors
+        msg = str(e)
+        if "502" in msg or "503" in msg or "504" in msg or "temporar" in msg.lower():
+            log.warning("Image gen transient error, retrying once: %s", e)
+            try:
+                img_resp = _gen()
+            except Exception as e2:
+                log.warning("Retry failed: %s", e2)
+                return JsonResponse({"ok": False, "error": f"Image generation failed: {e2}"}, status=502)
+        else:
+            log.warning("Image gen failed: %s", e)
+            return JsonResponse({"ok": False, "error": f"Image generation failed: {e}"}, status=502)
+
+    # 3) Prefer hosted URL, else persist b64 to MEDIA and return served URL
+    hero_url = ""
+    try:
+        d0 = img_resp.data[0]
+    except Exception:
+        return JsonResponse({"ok": False, "error": "Image API returned no data."}, status=502)
+
+    url = getattr(d0, "url", "") or ""
+    b64 = getattr(d0, "b64_json", "") or ""
+
+    if url:
+        hero_url = url.strip()
+    elif b64:
+        try:
+            raw = base64.b64decode(b64)
+            subdir = os.path.join(settings.MEDIA_ROOT, "hero_images")
+            os.makedirs(subdir, exist_ok=True)
+            fname = f"hero_{item.id}_{uuid.uuid4().hex}.png"
+            fpath = os.path.join(subdir, fname)
+            with open(fpath, "wb") as f:
+                f.write(raw)
+            hero_url = request.build_absolute_uri(
+                f"{settings.MEDIA_URL.rstrip('/')}/hero_images/{fname}"
+            )
+        except Exception as e:
+            log.exception("Saving b64 image failed")
+            return JsonResponse({"ok": False, "error": f"Could not save image: {e}"}, status=500)
+    else:
+        return JsonResponse({"ok": False, "error": "Image API returned neither url nor b64."}, status=502)
+
+    # 4) Persist + debit credits
+    latest.hero_image_url = hero_url
+    latest.hero_image_prompt = image_prompt
+    latest.save(update_fields=["hero_image_url", "hero_image_prompt"])
+    record_credit_change(request.user, -HERO_IMAGE_COST, "IMG", f"Hero image for {item.get_type_display()} {item.id}")
+
+    return JsonResponse({"ok": True, "hero_url": hero_url, "prompt": image_prompt})
 
 def signup_view(request):
     if request.user.is_authenticated:
@@ -414,14 +517,28 @@ def content_detail_view(request, content_id: int):
     image_query = ""
     image_results = []
 
-    if latest and (latest.body_md or item.topic):
-        base_q = suggest_image_search_term(latest.body_md or "", item.type, item.topic)
-        image_query = (base_q or item.topic or "").strip()
-        if image_query:
-            image_query = f"{image_query}"
-            image_results = search_images(image_query, count=10)
+    if latest and latest.body_md:
+        # Compute once, save, and reuse next time.
+        if not latest.image_search_term:
+            image_query = suggest_image_search_term(
+                latest.body_md, item.get_type_display(), item.topic
+            )[:120].strip()
+            latest.image_search_term = image_query
+            latest.image_search_term_at = timezone.now()
+            latest.save(update_fields=["image_search_term", "image_search_term_at"])
+        else:
+            image_query = latest.image_search_term
 
-    return render(request, "accounts/content_detail.html", {"item": item, "latest": latest, "image_query": image_query, "image_results": image_results})
+        if image_query:
+            image_results = search_images(image_query)  # unchanged
+
+    return render(request, "accounts/content_detail.html", {
+        "item": item,
+        "latest": latest,
+        "image_query": image_query,
+        "image_results": image_results,
+        # ... any other context you pass ...
+    })
 
 @login_required
 @require_POST
@@ -759,3 +876,87 @@ def save_onboarding_inline(request):
 
     messages.success(request, f"Preferences saved. Style Profile v{next_version} generated.")
     return redirect("my_style")
+
+def _build_image_prompt(post_text: str, topic: str) -> str:
+    """
+    Lightweight on-app prompting. If you already have an LLM helper, swap this
+    for a GPT call that returns a single line prompt.
+    """
+    # Keep it short & art-directive style for image models:
+    base = (
+        f"Design a striking, high-contrast hero image for an article titled "
+        f"“{topic}”. Visual metaphor, clean negative space, brand-friendly colors. "
+        f"Style: modern editorial, soft gradients & subtle glow. No text, no people. "
+        f"Keywords from content: "
+    )
+    # naive keyword skim:
+    import re
+    words = re.findall(r"[A-Za-z]{5,}", post_text.lower())
+    top = []
+    seen = set()
+    for w in words:
+        if w in seen: continue
+        seen.add(w)
+        if len(top) >= 10: break
+        top.append(w)
+    return base + ", ".join(top)
+
+def _generate_image_openai(prompt: str, size: str = "1024x1024") -> str:
+    """
+    Replace with your image provider. This returns a public URL.
+    Example using OpenAI Images:
+    """
+    # Avoid failing if no key; fall back to placeholder
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        # graceful fallback
+        return f"https://placehold.co/{size}/111/fff?text=AI+Hero"
+
+    # ---- Example (pseudo) — adapt to your OpenAI client ----
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key)
+    rsp = client.images.generate(model="gpt-image-1", prompt=prompt, size=size)
+    return rsp.data[0].url
+
+# -----------------------
+
+@login_required
+@require_POST
+def generate_content_hero(request, item_id: int):
+    item = get_object_or_404(ContentItem, pk=item_id, user=request.user)
+
+    # Ensure there’s something to analyze
+    latest = item.versions.order_by('-created_at').first()  # ContentVersion relation name may differ
+    if not latest or not latest.body_md:
+        messages.error(request, "No content body found to analyze.")
+        return redirect('content_detail', item.id)
+
+    # Credits guard
+    if request.user.credits < HERO_IMAGE_COST:
+        messages.error(request, "Not enough credits to generate an image (2 required).")
+        return redirect('credits')
+
+    # 1) Build prompt
+    prompt = _build_image_prompt(latest.body_md, item.topic)
+
+    # 2) Generate image from prompt
+    try:
+        image_url = _generate_image_openai(prompt, size="1536x1024")  # nice wide hero
+    except Exception as e:
+        messages.error(request, f"Image generation failed: {e}")
+        return redirect('content_detail', item.id)
+
+    # 3) Persist
+    ContentHeroImage.objects.create(
+        content=item,
+        prompt=prompt,
+        image_url=image_url,
+        size="1536x1024",
+        provider="gpt-image-1",
+    )
+
+    # 4) Debit credits
+    record_credit_change(request.user, -HERO_IMAGE_COST, "IMG", f"Hero image for {item.get_type_display()}")
+
+    messages.success(request, "Hero image created (−2 credits).")
+    return redirect('content_detail', item.id)
