@@ -1,159 +1,321 @@
 {% extends "base.html" %}
 {% block title %}{{ item.get_type_display }}: {{ item.topic }}{% endblock %}
 {% block content %}
-<div class="row gy-3">
-  <div class="col-lg-8">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="mb-2">{{ item.get_type_display }} • {{ item.topic }}</h5>
-        <span class="badge text-bg-secondary">{{ item.get_status_display }}</span>
-        <hr/>
-        {% if latest %}
-          {% if item.type == "BLOG" %}
-            <pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ latest.body_md }}</pre>
-            <h6>SEO Meta</h6>
-            <pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ latest.meta_json|json_script:"metaJson" }}</pre>
-            <script>
-              (function(){
-                const data = JSON.parse(document.getElementById('metaJson').textContent);
-                document.currentScript.previousElementSibling.textContent = JSON.stringify(data, null, 2);
-              })();
-            </script>
-          {% else %}
-            <pre class="bg-light p-3 rounded" style="white-space: pre-wrap;">{{ latest.body_md }}</pre>
-          {% endif %}
-        {% else %}
-          <p class="text-muted">No versions yet.</p>
-        {% endif %}
-      </div>
-    </div>
-    {% if image_results %}
-<hr class="my-4">
-<h6 class="mb-2">Image ideas</h6>
-<p class="text-muted small mb-3">
-  Suggested search: <code>{{ image_query }}</code> • Results via Pexels. Please check usage details on the source page.
-</p>
 
+{# --- Fonts & Page Styles --- #}
+<link href="https://fonts.googleapis.com/css2?family=Domine:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
+  :root{
+    --fg:#fff; --soft:#d7dbff;
+    --glass:rgba(255,255,255,.08); --glass-bd:rgba(255,255,255,.18);
+    --good:#30d158; --warn:#ffd166; --accent:#7c80ff;
+  }
+  body{ font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--fg); }
+
+  /* Background (random image set by JS below) */
+  .page-bg::before{
+    content:""; position:fixed; inset:0; z-index:-1;
+    background:
+      linear-gradient(180deg, rgba(6,8,20,.82), rgba(6,8,20,.82)),
+      var(--hero,url('https://i.pinimg.com/1200x/6d/97/48/6d97480f8cc3a6fc907459154ebf308b.jpg')) center/cover no-repeat;
+    filter:saturate(1.05) blur(1px);
+  }
+  .wrap{ max-width:1200px; margin:10px auto 40px; padding:0 16px; }
+
+  /* Glass cards */
+  .cardx{
+    position:relative; border-radius:18px; background:var(--glass);
+    border:1px solid var(--glass-bd); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 10px 30px rgba(0,0,0,.28); transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .cardx:hover{ transform:translateY(-2px); box-shadow:0 16px 40px rgba(0,0,0,.38); }
+  .cardx-body{ padding:18px 20px; }
+
+  /* Headers & meta */
+  .title{ font-weight:800; letter-spacing:.2px; margin:.15rem 0 .35rem; }
+  .badge-soft{
+    display:inline-block; padding:.25rem .6rem; border-radius:999px; font-weight:800; font-size:.78rem;
+    background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.25);
+  }
+
+  /* Main content (Domine) */
+  .content-pre{
+    font-family:"Domine", serif; font-size:1.02rem; line-height:1.6;
+    white-space:pre-wrap; margin:0; color:#fff; background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.18); border-radius:14px; padding:16px 16px;
+  }
+  .meta-pre{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    font-size:.9rem; line-height:1.5; white-space:pre-wrap; color:#e9ecff;
+    background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.18); border-radius:14px; padding:14px;
+  }
+
+  /* Inputs & buttons */
+  .form-label{ color:var(--soft); }
+  .form-select, .form-control{
+    background:rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.25);
+  }
+  .form-select:focus, .form-control:focus{
+    border-color:var(--accent); box-shadow:none; background:rgba(255,255,255,.12);
+  }
+  .btn-gradient{ border:0; border-radius:999px; padding:.55rem 1.05rem; font-weight:800;
+    background:linear-gradient(90deg,#6a5cff,#23a6d5); color:#fff;
+  }
+  .btn-ghost{ border-radius:999px; padding:.5rem 1rem; font-weight:700;
+    background:transparent; border:1px solid rgba(255,255,255,.28); color:#fff;
+  }
+  .btn-warning{ color:#221; font-weight:800; }
+
+  /* Image ideas grid */
   .img-card{
     border: 0; border-radius: 14px; overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    box-shadow: 0 10px 28px rgba(0,0,0,.28);
     transition: transform .15s ease, box-shadow .15s ease;
-    background:#fff;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.18);
   }
-  .img-card:hover{ transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,0,0,.12); }
+  .img-card:hover{ transform: translateY(-2px); box-shadow: 0 16px 40px rgba(0,0,0,.36); }
   .img-card img{ width: 100%; height: 160px; object-fit: cover; display:block; }
-  .img-meta{ padding:.5rem .75rem; }
-  .btn-copy{ --bs-btn-padding-y:.25rem; --bs-btn-padding-x:.5rem; --bs-btn-font-size:.8rem; }
-  .credit { font-size: .8rem; }
+  .img-meta{ padding:.55rem .75rem; color:var(--soft); }
+  .btn-copy{ --bs-btn-padding-y:.25rem; --bs-btn-padding-x:.55rem; --bs-btn-font-size:.8rem; }
+
+  .muted{ color:var(--soft); }
 </style>
 
-<div class="row g-3">
-  {% for im in image_results %}
-  <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
-    <div class="img-card">
-      <a href="{{ im.page }}" target="_blank" rel="noopener" title="{{ im.title }}">
-        <img src="{{ im.thumb }}" alt="{{ im.title|default:'Banner idea' }}">
-      </a>
-      <div class="img-meta">
-        <div class="d-flex justify-content-between align-items-center">
-          <span class="credit text-truncate me-2">{% if im.credit_html %}{{ im.credit_html|safe }}{% else %}Pexels{% endif %}</span>
-          <button class="btn btn-outline-secondary btn-copy" data-url="{{ im.url }}">Copy link</button>
+<div class="page-bg"></div>
+<div class="wrap">
+  <div class="row gy-3">
+    <!-- LEFT -->
+    <div class="col-lg-8">
+      <section class="">
+        <div class="cardx-body">
+          <h3 class="title">{{ item.get_type_display }} • {{ item.topic }}</h3>
+          <span class="badge-soft">{{ item.get_status_display }}</span>
+          <div style="height:10px"></div>
+
+          {% if latest %}
+            {% if item.type == "BLOG" %}
+              <pre class="content-pre">{{ latest.body_md }}</pre>
+              <div style="height:14px"></div>
+              <h6 class="muted mb-2">SEO Meta</h6>
+              <pre class="meta-pre">{{ latest.meta_json|json_script:"metaJson" }}</pre>
+              <script>
+                (function(){
+                  try{
+                    const data = JSON.parse(document.getElementById('metaJson').textContent);
+                    document.currentScript.previousElementSibling.textContent = JSON.stringify(data, null, 2);
+                  }catch(e){}
+                })();
+              </script>
+            {% else %}
+              <pre class="content-pre">{{ latest.body_md }}</pre>
+            {% endif %}
+          {% else %}
+            <p class="muted mb-0">No versions yet.</p>
+          {% endif %}
         </div>
-      </div>
+      </section>
+
+      <button id="btn-hero" class="btn btn-primary btn-sm ai-action"
+        data-endpoint="{% url 'create_hero_image' item.id %}">
+  Create Content Hero Image with AI (–2 credits)
+</button>
+
+<img id="heroPreview" class="img-fluid mt-3 d-none" alt="Hero image preview">
+
+
+
+      {% if image_results %}
+      <div class="mt-4"></div>
+      <section class="cardx">
+        <div class="cardx-body">
+          <h6 class="mb-2">Image ideas</h6>
+          <p class="muted small mb-3">
+            Suggested search: <code>{{ image_query }}</code> • Results via Pexels. Please check usage details on the source page.
+          </p>
+
+          <div class="row g-3">
+            {% for im in image_results %}
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+              <div class="img-card">
+                <a href="{{ im.page }}" target="_blank" rel="noopener" title="{{ im.title }}">
+                  <img src="{{ im.thumb }}" alt="{{ im.title|default:'Banner idea' }}">
+                </a>
+                <div class="img-meta d-flex justify-content-between align-items-center">
+                  <span class="text-truncate me-2">{% if im.credit_html %}{{ im.credit_html|safe }}{% else %}Pexels{% endif %}</span>
+                  <button class="btn btn-outline-light btn-copy" data-url="{{ im.url }}">Copy link</button>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <script>
+        document.querySelectorAll('.btn-copy').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const url = btn.getAttribute('data-url');
+            try {
+              await navigator.clipboard.writeText(url);
+              const old = btn.textContent;
+              btn.textContent = 'Copied!';
+              setTimeout(()=> btn.textContent = old, 1000);
+            } catch(e) {
+              alert('Could not copy. URL: ' + url);
+            }
+          });
+        });
+      </script>
+      {% endif %}
+    </div>
+
+    <!-- RIGHT: Actions -->
+    <div class="col-lg-4">
+      <section class="cardx">
+        <div class="cardx-body">
+          <h6 class="mb-3">Actions</h6>
+
+          <!-- Approve -->
+          <form method="post" action="{% url 'approve_content' item.id %}" class="mb-3">
+            {% csrf_token %}
+            <input type="hidden" name="confirm" value="on">
+            <button class="btn btn-gradient btn-sm" {% if item.status == "APPROVED" %}disabled{% endif %}>
+              Approve{% if item.status == "APPROVED" %}d{% endif %}
+            </button>
+            <small class="muted ms-2">No credits used</small>
+          </form>
+
+          <!-- Improve -->
+          <form method="post" action="{% url 'improve_content' item.id %}" class="mb-3 ai-action">
+            {% csrf_token %}
+            <div class="row g-2">
+              <div class="col-4">
+                <label class="form-label mb-0 small">Length</label>
+                <select name="length" class="form-select form-select-sm">
+                  <option value="short">Short</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="long">Long</option>
+                </select>
+              </div>
+              <div class="col-4">
+                <label class="form-label mb-0 small">Tone</label>
+                <select name="tone" class="form-select form-select-sm">
+                  <option value="as_is" selected>As is</option>
+                  <option value="casual">More casual</option>
+                  <option value="formal">More formal</option>
+                </select>
+              </div>
+              <div class="col-4 d-flex align-items-end flex-wrap gap-2">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="add_example" id="ex1">
+                  <label class="form-check-label small" for="ex1">Example</label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="add_data" id="ex2">
+                  <label class="form-check-label small" for="ex2">Data</label>
+                </div>
+              </div>
+              <div class="col-12">
+                <input type="text" name="custom_note" class="form-control form-control-sm" placeholder="Optional nudge to the writer">
+              </div>
+              <div class="col-12 d-grid">
+                <button class="btn btn-gradient btn-sm">Improve (−1 credit)</button>
+              </div>
+            </div>
+          </form>
+
+          <!-- Change Topic -->
+          <form method="post" class="ai-action" action="{% url 'change_topic' item.id %}">
+            {% csrf_token %}
+            <div class="row g-2">
+              <div class="col-9">
+                <input type="text" name="new_topic" class="form-control form-control-sm" placeholder="New topic/title">
+              </div>
+              <div class="col-3 d-grid">
+                <button class="btn btn-warning btn-sm">Change (−2)</button>
+              </div>
+            </div>
+          </form>
+
+          <hr>
+          <p class="muted small mb-0">Latest version is shown on the left. Each Improve/Change creates a new version.</p>
+        </div>
+      </section>
     </div>
   </div>
-  {% endfor %}
 </div>
 
 <script>
-  document.querySelectorAll('.btn-copy').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const url = btn.getAttribute('data-url');
-      try {
-        await navigator.clipboard.writeText(url);
-        const old = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(()=> btn.textContent = old, 1200);
-      } catch(e) {
-        alert('Could not copy. URL: ' + url);
+  // Randomize background from your list
+  (function(){
+    const imgs = [
+      "https://i.pinimg.com/1200x/6d/97/48/6d97480f8cc3a6fc907459154ebf308b.jpg",
+      "https://i.pinimg.com/1200x/8d/26/e0/8d26e0354933b3d3a678a6b84b3037eb.jpg",
+      "https://i.pinimg.com/736x/cc/96/9c/cc969cd64290f51bed1d6e853b539d69.jpg",
+      "https://i.pinimg.com/736x/23/03/29/230329057bb7d45b8e72c02bb96c50f2.jpg"
+    ];
+    const pick = imgs[Math.floor(Math.random()*imgs.length)];
+    document.documentElement.style.setProperty('--hero', `url("${pick}")`);
+  })();
+</script>
+  <script>
+    function getCookie(name){
+      const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return m ? m.pop() : '';
+    }
+    window._csrftoken = () => getCookie('csrftoken');
+  </script>
+  <script>
+(function () {
+  const btn = document.getElementById('btn-hero');
+  const ep  = btn?.dataset.endpoint;
+  const img = document.getElementById('heroPreview');
+
+  function getCsrf() {
+    const m = document.cookie.match(/(^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[2]) : '';
+  }
+
+  async function fetchJson(url) {
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'X-CSRFToken': getCsrf(),
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
       }
     });
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      const t = await res.text();
+      throw new Error(`Non-JSON (${res.status}) ${t.slice(0,180)}`);
+    }
+    const data = await res.json();
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    return data;
+  }
+
+  btn?.addEventListener('click', async () => {
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+    try {
+      const data = await fetchJson(ep);
+      if (!data.hero_url) throw new Error('No image URL returned');
+      img.src = data.hero_url;
+      img.classList.remove('d-none');
+      btn.textContent = 'Regenerate Hero Image (−2 credits)';
+    } catch (e) {
+      alert('Could not generate image. ' + e.message);
+      btn.textContent = original;
+    } finally {
+      btn.disabled = false;
+    }
   });
+})();
 </script>
-{% endif %}
-  </div>
-  <div class="col-lg-4">
-    <div class="card">
-  <div class="card-body">
-    <h6 class="mb-3">Actions</h6>
 
-    <!-- Approve -->
-    <form method="post" action="{% url 'approve_content' item.id %}" class="mb-3">
-      {% csrf_token %}
-      <input type="hidden" name="confirm" value="on">
-      <button class="btn btn-success btn-sm" {% if item.status == "APPROVED" %}disabled{% endif %}>
-        Approve{% if item.status == "APPROVED" %}d{% endif %}
-      </button>
-      <small class="text-muted ms-2">No credits used</small>
-    </form>
-
-    <!-- Improve -->
-    <form method="post" action="{% url 'improve_content' item.id %}" class="mb-3 ai-action">
-      {% csrf_token %}
-      <div class="row g-2">
-        <div class="col-4">
-          <label class="form-label mb-0 small">Length</label>
-          <select name="length" class="form-select form-select-sm">
-            <option value="short">Short</option>
-            <option value="medium" selected>Medium</option>
-            <option value="long">Long</option>
-          </select>
-        </div>
-        <div class="col-4">
-          <label class="form-label mb-0 small">Tone</label>
-          <select name="tone" class="form-select form-select-sm">
-            <option value="as_is" selected>As is</option>
-            <option value="casual">More casual</option>
-            <option value="formal">More formal</option>
-          </select>
-        </div>
-        <div class="col-4 d-flex align-items-end">
-          <div class="form-check me-3">
-            <input class="form-check-input" type="checkbox" name="add_example" id="ex1">
-            <label class="form-check-label small" for="ex1">Add example</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="add_data" id="ex2">
-            <label class="form-check-label small" for="ex2">Add data</label>
-          </div>
-        </div>
-        <div class="col-12">
-          <input type="text" name="custom_note" class="form-control form-control-sm" placeholder="Optional nudge to the writer">
-        </div>
-        <div class="col-12">
-          <button class="btn btn-primary btn-sm">Improve (−1 credit)</button>
-        </div>
-      </div>
-    </form>
-
-    <!-- Change Topic -->
-    <form method="post" class="ai-action" action="{% url 'change_topic' item.id %}">
-      {% csrf_token %}
-      <div class="row g-2">
-        <div class="col-9">
-          <input type="text" name="new_topic" class="form-control form-control-sm" placeholder="New topic/title">
-        </div>
-        <div class="col-3 d-grid">
-          <button class="btn btn-warning btn-sm">Change Topic (−2 credits)</button>
-        </div>
-      </div>
-    </form>
-
-    <hr>
-    <p class="small text-muted mb-0">Latest version is shown on the left. Each Improve/Change creates a new version.</p>
-  </div>
-</div>
-  </div>
-</div>
 {% endblock %}
