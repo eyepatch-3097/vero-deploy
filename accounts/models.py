@@ -124,6 +124,10 @@ class ContentVersion(models.Model):
     body_md = models.TextField()       # markdown string
     meta_json = models.JSONField(default=dict)  # e.g., meta title/description/keywords for blogs
     created_at = models.DateTimeField(auto_now_add=True)
+    hero_image_url = models.URLField(blank=True, null=True)
+    hero_image_prompt = models.TextField(blank=True, null=True)
+    image_search_term = models.CharField(max_length=120, blank=True, default="")
+    image_search_term_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ("content", "version_no")
@@ -153,3 +157,15 @@ class GuidelineSchedule(models.Model):
 
     def __str__(self):
         return f"{self.get_day_of_week_display()} → {self.pillar or '—'}"
+
+
+class ContentHeroImage(models.Model):
+    content = models.ForeignKey('ContentItem', on_delete=models.CASCADE, related_name='hero_images')
+    prompt = models.TextField()
+    image_url = models.URLField()           # or use ImageField if you download to media
+    provider = models.CharField(max_length=32, default='openai')
+    size = models.CharField(max_length=16, default='1024x1024')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
