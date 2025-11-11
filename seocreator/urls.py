@@ -39,4 +39,5 @@ urlpatterns = [
     path("healthz/", lambda r: HttpResponse("ok", content_type="text/plain")),
 ]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG or True:  # change to `or True` if you're okay serving from Django always
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
