@@ -3,93 +3,123 @@
 
 {% block content %}
 <style>
-  /* temporary page-scoped styles (move to your static css later) */
-  :root{
-    --ds-bg-1:#0f1020;          /* deep ink */
-    --ds-bg-2:#151a3b;          /* indigo */
-    --ds-grad-1:#6a5cff;        /* bluish-purple */
-    --ds-grad-2:#7a8cff;        /* periwinkle */
-    --ds-grad-3:#23a6d5;        /* blue hint */
-  }
-  /* global font fallback; set in base.css later */
-  body{ font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:500; }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Helvetica, Arial, sans-serif;
+    color: #fff;
 
-  .auth-wrap{
-    min-height: calc(100vh - 56px); /* account for navbar height */
-  }
-  .hero-copy h1{
-    font-weight:700; line-height:1.1; letter-spacing:.2px;
-  }
-  .gradient-text{
-    background: linear-gradient(90deg, var(--ds-grad-1), var(--ds-grad-2), var(--ds-grad-3));
-    -webkit-background-clip:text; background-clip:text; color:transparent;
+    background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),url('https://i.pinimg.com/1200x/aa/d4/b3/aad4b34a21225637e3286be7a2058084.jpg') no-repeat center center fixed;
+    
+    background-size: cover;
   }
 
-  .auth-card{
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.12);
-    backdrop-filter: blur(6px);
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  .login-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
   }
-  .auth-card .form-control{
-    background: rgba(255,255,255,.12);
-    border: 1px solid rgba(255,255,255,.18);
-    color: #eef0ff;
+
+  .hero-text {
+    max-width: 800px;
+    margin-bottom: 60px;
   }
-  .auth-card .form-control:focus{
-    background: rgba(255,255,255,.16);
-    border-color: var(--ds-grad-1);
-    box-shadow: 0 0 0 .2rem rgba(106,92,255,.25);
-    color:#fff;
+
+  .hero-text h1 {
+    font-size: 2.5rem;
+    font-family: "Instrument Serif", serif;
+    font-weight: 400;
+    background: linear-gradient(90deg, #d3cdee, #b7e1ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-  
-  .btn-gradient{
-    background-image: linear-gradient(90deg, var(--ds-grad-1), var(--ds-grad-2));
+
+  .hero-text p {
+    color: rgba(255,255,255,0.9);
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    margin-top: 1rem;
+  }
+
+  .login-form {
+    width: 320px;
+  }
+
+  .login-form label {
+    display: block;
+    text-align: left;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    opacity: 0.8;
+  }
+
+  .login-form input {
+    width: 100%;
+    background: transparent;
     border: none;
+    border-bottom: 2px solid rgba(255,255,255,0.8);
+    padding: 8px 0;
+    color: #fff;
+    font-size: 1rem;
+    margin-bottom: 24px;
+    outline: none;
   }
-  .btn-gradient:hover{ filter:brightness(1.05); }
 
+  .login-form input:focus {
+    border-bottom-color: #7b61ff;
+  }
+
+  .login-button {
+    width: 100%;
+    background: linear-gradient(90deg, #7b61ff, #6ec3ff);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 400;
+    font-family: "Inter", sans-serif;
+    padding: 10px 0;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+  }
+
+  .login-button:hover {
+    opacity: 0.9;
+  }
+
+  .signup-link {
+    margin-top: 16px;
+    font-size: 0.9rem;
+  }
+
+  .signup-link a {
+    color: #fff;
+    text-decoration: underline;
+  }
 </style>
 
-<div class="auth-wrap d-flex align-items-center">
-  <div class="container">
-    <div class="row g-5 align-items-center">
-      <!-- Left: hero -->
-      <div class="col-lg-7">
-        <div class="hero-copy pe-lg-5">
-          <h1 class="display-5 gradient-text">Create Confident Content Seamlessly with Dotswitch Vero</h1>
-          <p class="mt-3 hero-sub">
-            Turn your brand voice into consistent, on-strategy posts and blogs. Plan, generate, and approve —
-            all in one place.
-          </p>
-        </div>
-      </div>
-
-      <!-- Right: form -->
-      <div class="col-lg-5">
-        <div class="auth-card p-4 p-lg-5">
-          <h5 class="mb-3 text-soft fw-bold">Login</h5>
-          <form method="post" novalidate class="vstack gap-3">
-            {% csrf_token %}
-            {# If you want fully custom fields, render them manually; for now style generically #}
-            {{ form.non_field_errors }}
-            <div>
-              <label class="form-label text-soft">Username</label>
-              {{ form.username }}
-            </div>
-            <div>
-              <label class="form-label text-soft">Password</label>
-              {{ form.password }}
-            </div>
-            <button class="btn btn-gradient btn-lg w-100">Login</button>
-          </form>
-          <p class="mt-3 mb-0 text-soft">New here?
-            <a href="{% url 'signup' %}" class="link-lightish">Create an account</a>
-          </p>
-        </div>
-      </div>
-    </div>
+<div class="login-container">
+  <div class="hero-text">
+    <h1>Create Confident Content Seamlessly with Dotswitch Vero</h1>
+    <p>Turn your brand voice into consistent, on-strategy posts and blogs.<br>
+    Plan, generate, and approve — all in one place.</p>
   </div>
+
+  <form method="post" class="login-form">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <label>Username</label>
+    {{ form.username }}
+    <label>Password</label>
+    {{ form.password }}
+    <button type="submit" class="login-button">Login</button>
+    <div class="signup-link">
+      New here? <a href="{% url 'signup' %}">Create an account</a>
+    </div>
+  </form>
 </div>
 {% endblock %}
