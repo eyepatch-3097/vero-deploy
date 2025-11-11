@@ -3,152 +3,307 @@
 {% block title %}Monthly Calendar{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div>
-    <a class="btn btn-outline-secondary btn-sm" href="{% url 'calendar' %}?month={{ prev_month }}&mode={{ mode }}">‹ {{ prev_month }}</a>
-  </div>
-  <div class="btn-group">
-    <a class="btn btn-sm {% if mode == 'grid' %}btn-primary{% else %}btn-outline-primary{% endif %}"
-       href="{% url 'calendar' %}?month={{ year }}-{{ month }}&mode=grid">Grid</a>
-    <a class="btn btn-sm {% if mode == 'list' %}btn-primary{% else %}btn-outline-primary{% endif %}"
-       href="{% url 'calendar' %}?month={{ year }}-{{ month }}&mode=list">30-Day List</a>
-  </div>
-  <div>
-    <a class="btn btn-outline-secondary btn-sm" href="{% url 'calendar' %}?month={{ next_month }}&mode={{ mode }}">{{ next_month }} ›</a>
-  </div>
-</div>
-
-<div class="card mb-3">
-  <div class="card-body">
-    <form method="post" class="ai-action" action="{% url 'auto_populate' %}" class="row g-2">
-      {% csrf_token %}
-      <div class="col-md-2">
-        <label class="form-label small mb-1">Type</label>
-        <select name="content_type" class="form-select form-select-sm">
-          <option value="BLOG">Blog (−6)</option>
-          <option value="LINKEDIN">LinkedIn (−2)</option>
-        </select>
-      </div>
-      <div class="col-md-8">
-        <label class="form-label small mb-1">Dates (YYYY-MM-DD, one per line; max 7)</label>
-        <textarea name="dates" class="form-control form-control-sm" rows="2" placeholder="2025-11-03&#10;2025-11-05"></textarea>
-      </div>
-      <div class="col-md-2 d-grid align-items-end">
-        <button class="btn btn-primary btn-sm mt-4">Auto-Generate</button>
-      </div>
-    </form>
-    <div class="small text-muted mt-2">Uses your current Style Profile and deducts credits in one batch.</div>
-  </div>
-</div>
-
-{% if mode == 'grid' %}
-
-<div class="table-responsive">
-  <table class="table table-bordered align-middle text-center">
-    <thead class="table-light">
-      <tr>
-        <th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for week in weeks %}
-        <tr>
-          {% for d in week %}
-            {% with key=d|date:"Y-m-d" %}
-              <td class="daybox {% if d.month != month %}muted{% endif %}">
-                <div class="d-flex justify-content-between">
-                  <strong>{{ d.day }}</strong>
-                  <div class="counts">
-                    {% with counts=counts_map|dict_get:key %}
-                      {% if counts %}
-                        {% if counts.BLOG %}<span class="badge text-bg-primary">B {{ counts.BLOG }}</span>{% endif %}
-                        {% if counts.LINKEDIN %}<span class="badge text-bg-info">LI {{ counts.LINKEDIN }}</span>{% endif %}
-                      {% endif %}
-                    {% endwith %}
-                  </div>
-                </div>
-                {% if d.month == month %}
-                  <div class="mt-2 d-grid gap-2">
-                    <a class="btn btn-sm btn-outline-primary" href="{% url 'generate' %}?date={{ key }}">Generate</a>
-                  </div>
-                {% endif %}
-              </td>
-            {% endwith %}
-          {% endfor %}
-        </tr>
-      {% endfor %}
-    </tbody>
-
-  </table>
-</div>
-{% endif %}
-
-{% if mode == 'list' %}
-<div class="card">
-  <div class="card-body p-0">
-    <table class="table table-hover align-middle mb-0">
-      <thead class="table-light">
-        <tr>
-          <th style="width: 120px;">Date</th>
-          <th>Planned Items</th>
-          <th style="width: 160px;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for d in day_list %}
-          {% with daykey=d|date:"Y-m-d" %}
-            {% with counts=counts_map|dict_get:daykey items=items_map|dict_get:daykey %}
-
-            <tr>
-                <td>
-                <div class="fw-semibold">{{ d|date:"Y-m-d" }}</div>
-                <div class="text-muted small">{{ d|date:"D" }}</div>
-                </td>
-                <td>
-                {% if counts %}
-                    {% if counts.BLOG %}<span class="badge text-bg-primary me-1">B {{ counts.BLOG }}</span>{% endif %}
-                    {% if counts.LINKEDIN %}<span class="badge text-bg-info me-1">LI {{ counts.LINKEDIN }}</span>{% endif %}
-                {% else %}
-                    <span class="text-muted">—</span>
-                {% endif %}
-
-                {% if items %}
-                    <div class="mt-2 small">
-                    {% for it in items %}
-                        <div class="text-truncate">
-                        <a href="{% url 'content_detail' it.id %}">{{ it.get_type_display }} • {{ it.topic }}</a>
-                        <span class="text-muted">({{ it.get_status_display }})</span>
-                        </div>
-                    {% endfor %}
-                    </div>
-                {% endif %}
-                </td>
-                <td class="text-end">
-                <a class="btn btn-sm btn-outline-primary" href="{% url 'generate' %}?date={{ key }}">Generate</a>
-                </td>
-            </tr>
-            {% endwith %}
-          {% endwith %} 
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
 <style>
-  .muted { opacity: .4; }
-  .daybox { min-height: 110px; text-align: left; padding: .5rem; }
-  .counts .badge { margin-right: .25rem; }
+  :root{
+    --fg:#fff; --soft:#cfd5ff;
+    --glass:rgba(255,255,255,.08); --glass-bd:rgba(255,255,255,.18);
+    --accent1:#6a5cff; --accent2:#23a6d5;
+  }
+  body{ font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--fg); }
+
+  /* Background */
+  .page-bg::before{
+    content:""; position:fixed; inset:0; z-index:-1;
+    background:
+      linear-gradient(180deg, rgba(6,8,20,.82), rgba(6,8,20,.82)),
+      url("https://i.pinimg.com/736x/65/b8/07/65b8075f4def7ffefadf270cbfe9bd0b.jpg") center/cover no-repeat;
+    filter:saturate(1.06) blur(1px);
+  }
+
+  .wrap{ max-width:1200px; margin:8px auto 40px; padding:0 16px; }
+
+  /* Hero */
+  .hero{ text-align:center; margin:6px 0 18px; }
+  .hero h1{ font-weight:800; letter-spacing:.2px; margin:.25rem 0 .25rem; }
+  .hero p{ color:var(--soft); margin:0; }
+
+  /* Layout */
+  .grid{ display:grid; grid-template-columns: 1fr 340px; gap:22px; }
+  @media (max-width: 992px){ .grid{ grid-template-columns: 1fr; } }
+
+  /* Glass cards */
+  .cardx{
+    position:relative; border-radius:18px; background:var(--glass);
+    border:1px solid var(--glass-bd); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 10px 30px rgba(0,0,0,.28); transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .cardx:hover{ transform:translateY(-2px); box-shadow:0 16px 40px rgba(0,0,0,.38); }
+  .cardx-body{ padding:18px 20px; }
+  .divider{ height:1px; background:rgba(255,255,255,.14); margin:.65rem 0 1rem; }
+  .muted{ color:rgba(255,255,255,.78); }
+
+  /* Buttons */
+  .btn-solid{ border:0; border-radius:999px; padding:.55rem 1.05rem; font-weight:700;
+    background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:#fff; }
+  .btn-ghost{ border-radius:999px; padding:.5rem .95rem; font-weight:700;
+    background:transparent; border:1px solid rgba(255,255,255,.28); color:#fff; }
+
+  /* Chips for queued dates */
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; padding:.4rem .7rem; border-radius:999px;
+    background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.22); font-weight:700;
+  }
+  .chip button{ border:0; background:transparent; color:#fff; line-height:1; padding:0 .1rem; font-size:14px; }
+
+  /* Inputs */
+  .selectx{
+    width:100%; color:#0f1220; background:#f4f6ff; border:0; border-radius:10px; padding:.6rem .75rem; font-weight:600;
+  }
+  .underline{
+    width:100%; color:#fff; background:transparent; border:0;
+    border-bottom:2px solid rgba(255,255,255,.45); padding:.6rem .25rem .45rem; outline:0;
+  }
+  .underline:focus{ border-bottom-color:var(--accent1); background:rgba(255,255,255,.06); }
+
+  /* Calendar table cleanup */
+  .table-clean{ width:100%; border-collapse:separate; border-spacing:0; }
+  .table-clean th, .table-clean td{ padding:.2rem; }
+  .table-clean thead th{
+    text-align:center; font-weight:800; color:var(--soft); border-bottom:1px solid rgba(255,255,255,.16);
+  }
+  .daybox{ min-height:110px; text-align:left; padding:.45rem; border:1px solid rgba(255,255,255,.14); border-radius:12px; }
+  .daybox .header{ display:flex; justify-content:space-between; align-items:center; }
+  .counts .badge{ margin-left:.25rem; }
+  .badge{ border-radius:8px; padding:.15rem .35rem; font-weight:800; }
+  .badge-primary{ background:rgba(108,122,255,.2); color:#cfd5ff; }
+  .badge-info{ background:rgba(35,166,213,.2); color:#bfeaff; }
+
+  /* Top nav (prev/next + modes) */
+  .calendar-nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .toggle a{ margin-left:6px; }
+  .small-soft{ color:var(--soft); font-size:.92rem; }
+
+  /* Sticky side panel on desktop */
+  .sticky{ position:sticky; top:84px; }
+
+  .hero h1{ font-family:"Instrument Serif", serif;font-weight:400; font-size: 4rem; margin-top:2rem; margin-bottom: 2rem; }
 </style>
 
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-  {# Fallback: simple 30-day list if grid rendering is complex #}
+<div class="page-bg"></div>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>Your Content Calendar by Vero</h1>
+    <p>See your entire content calendar and auto-plan topics in bulk for multiple dates</p>
+  </div>
+
+  <div class="calendar-nav">
+    <a class="btn-ghost" href="{% url 'calendar' %}?month={{ prev_month }}&mode={{ mode }}">‹ {{ prev_month }}</a>
+    <div class="toggle">
+      <a class="btn {% if mode == 'grid' %}btn-solid{% else %}btn-ghost{% endif %}" href="{% url 'calendar' %}?month={{ year }}-{{ month }}&mode=grid">Calendar View</a>
+      <a class="btn {% if mode == 'list' %}btn-solid{% else %}btn-ghost{% endif %}" href="{% url 'calendar' %}?month={{ year }}-{{ month }}&mode=list">List View</a>
+    </div>
+    <a class="btn-ghost" href="{% url 'calendar' %}?month={{ next_month }}&mode={{ mode }}">{{ next_month }} ›</a>
+  </div>
+
+  <div class="grid">
+
+    <!-- LEFT: Calendar/List -->
+    <section class="cardx">
+      <div class="cardx-body">
+        {% if mode == 'grid' %}
+
+          <table class="table-clean">
+            <thead>
+              <tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>
+            </thead>
+            <tbody>
+            {% for week in weeks %}
+              <tr>
+              {% for d in week %}
+                {% with key=d|date:"Y-m-d" %}
+                  <td>
+                    <div class="daybox {% if d.month != month %}muted{% endif %}">
+                      <div class="header">
+                        <strong>{{ d.day }}</strong>
+                        <div class="counts">
+                          {% with counts=counts_map|dict_get:key %}
+                            {% if counts %}
+                              {% if counts.BLOG %}<span class="badge badge-primary">B {{ counts.BLOG }}</span>{% endif %}
+                              {% if counts.LINKEDIN %}<span class="badge badge-info">LI {{ counts.LINKEDIN }}</span>{% endif %}
+                            {% endif %}
+                          {% endwith %}
+                        </div>
+                      </div>
+                      {% if d.month == month %}
+                        <div class="mt-2">
+                          <a class="btn-ghost" href="{% url 'generate' %}?date={{ key }}">Generate</a>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </td>
+                {% endwith %}
+              {% endfor %}
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+
+        {% else %} {# LIST MODE #}
+
+          <div class="small-soft mb-2">{{ year }}-{{ month }} • 30-day list</div>
+          <div class="cardx" style="background:transparent;border:0;box-shadow:none;">
+            <div class="cardx-body" style="padding:0;">
+              <table class="table-clean">
+                <thead>
+                  <tr>
+                    <th style="width:140px;">Date</th>
+                    <th>Planned Items</th>
+                    <th style="width:160px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for d in day_list %}
+                  {% with daykey=d|date:"Y-m-d" %}
+                  {% with counts=counts_map|dict_get:daykey items=items_map|dict_get:daykey %}
+                    <tr>
+                      <td>
+                        <div class="fw-bold">{{ d|date:"Y-m-d" }}</div>
+                        <div class="small-soft">{{ d|date:"D" }}</div>
+                      </td>
+                      <td>
+                        {% if counts %}
+                          {% if counts.BLOG %}<span class="badge badge-primary">B {{ counts.BLOG }}</span>{% endif %}
+                          {% if counts.LINKEDIN %}<span class="badge badge-info">LI {{ counts.LINKEDIN }}</span>{% endif %}
+                        {% else %}
+                          <span class="small-soft">—</span>
+                        {% endif %}
+                        {% if items %}
+                          <div class="small mt-2">
+                            {% for it in items %}
+                              <div class="text-truncate">
+                                <a href="{% url 'content_detail' it.id %}">{{ it.get_type_display }} • {{ it.topic }}</a>
+                                <span class="small-soft">({{ it.get_status_display }})</span>
+                              </div>
+                            {% endfor %}
+                          </div>
+                        {% endif %}
+                      </td>
+                      <td class="text-end">
+                        <a class="btn-ghost" href="{% url 'generate' %}?date={{ key }}">Generate</a>
+                      </td>
+                    </tr>
+                  {% endwith %}
+                  {% endwith %}
+                {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- RIGHT: Action panel -->
+    <aside class="cardx sticky">
+      <div class="cardx-body">
+        <h5 class="mb-2">Plan New Content</h5>
+        <p class="small-soft mb-2">Batch up to 7 dates at once using your current Style Profile. Credits are deducted in one go.</p>
+        <button id="toggleForm" class="btn-solid w-100">➕ Add Content To A Date</button>
+
+        <div id="planForm" class="mt-3" style="display:none;">
+          <div class="divider"></div>
+
+          <!-- lightweight “builder” UI that fills the backend form -->
+          <div class="mb-2">
+            <label class="form-label">Date</label>
+            <input type="date" id="pickDate" class="underline">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Type</label>
+            <select id="pickType" class="selectx">
+              <option value="BLOG">Blog (−6)</option>
+              <option value="LINKEDIN">LinkedIn (−2)</option>
+            </select>
+          </div>
+          <div class="d-flex gap-2 mb-3">
+            <button id="addDate" class="btn-ghost" type="button">Add</button>
+            <button id="clearDates" class="btn-ghost" type="button">Clear</button>
+          </div>
+
+          <div class="chips mb-3" id="dateChips"></div>
+
+          <!-- Real POST form that matches your existing view -->
+          <form method="post" action="{% url 'auto_populate' %}" class="ai-action">
+            {% csrf_token %}
+            <input type="hidden" name="content_type" id="formType" value="BLOG">
+            <textarea name="dates" id="formDates" class="d-none" rows="2"></textarea>
+            <button class="btn-solid w-100" id="submitBatch" disabled>Auto-Generate</button>
+          </form>
+        </div>
+      </div>
+    </aside>
+
+  </div>
 </div>
 
 <script>
-  // We’ll render grid via JS to keep template simple
-  (function(){
-    const data = {{ month_days|length }};
-  })();
+(function(){
+  const toggle = document.getElementById('toggleForm');
+  const panel  = document.getElementById('planForm');
+  const addBtn = document.getElementById('addDate');
+  const clrBtn = document.getElementById('clearDates');
+  const chips  = document.getElementById('dateChips');
+  const pickDate = document.getElementById('pickDate');
+  const pickType = document.getElementById('pickType');
+
+  const formType  = document.getElementById('formType');
+  const formDates = document.getElementById('formDates');
+  const submitBtn = document.getElementById('submitBatch');
+
+  let dates = []; // newline-joined into textarea for backend
+
+  toggle.addEventListener('click', () => {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  });
+
+  function refresh(){
+    // reflect current type
+    formType.value = pickType.value;
+
+    // write newline-separated dates for your existing view
+    formDates.value = dates.join('\n');
+
+    // enable submit when we have at least one date
+    submitBtn.disabled = dates.length === 0;
+
+    // render chips
+    chips.innerHTML = '';
+    dates.forEach((d, i) => {
+      const el = document.createElement('span');
+      el.className = 'chip';
+      el.innerHTML = d + ' <button type="button" aria-label="Remove">×</button>';
+      el.querySelector('button').onclick = () => { dates.splice(i,1); refresh(); };
+      chips.appendChild(el);
+    });
+  }
+
+  addBtn.addEventListener('click', () => {
+    const d = (pickDate.value || '').trim();
+    if(!d) return;
+    if(dates.includes(d)) return;
+    if(dates.length >= 7) { alert('You can batch up to 7 dates at a time.'); return; }
+    dates.push(d);
+    refresh();
+  });
+
+  clrBtn.addEventListener('click', () => { dates = []; refresh(); });
+  pickType.addEventListener('change', refresh);
+
+  refresh();
+})();
 </script>
+
 {% endblock %}
