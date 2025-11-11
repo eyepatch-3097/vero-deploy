@@ -33,8 +33,8 @@ class UploadForm(forms.ModelForm):
         name = f.name.lower()
         if not (name.endswith(".txt") or name.endswith(".pdf")):
             raise forms.ValidationError("Only .txt or .pdf files are allowed.")
-        if f.size > 5 * 1024 * 1024:
-            raise forms.ValidationError("Max file size is 5 MB.")
+        if f.size > 25 * 1024 * 1024:
+            raise forms.ValidationError("Max file size is 25 MB.")
         return f
 
 class GenerateContentForm(forms.Form):
