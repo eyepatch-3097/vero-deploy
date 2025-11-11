@@ -1,22 +1,267 @@
+<div class="bg-layer" id="bgLayer"></div>
+
 {% extends "base.html" %}
 {% block title %}Onboarding{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-lg-7">
-    <h3 class="mb-3">Tell us more about you</h3>
-    <p class="text-muted">These details help us shape your Style Profile and daily content.</p>
-    <form method="post" novalidate class="card card-body ai-action">
-      {% csrf_token %}
-      <div class="row g-3">
-        <div class="col-12">{{ form.writing_style_keywords.label_tag }} {{ form.writing_style_keywords }}</div>
-        <div class="col-12">{{ form.goals.label_tag }} {{ form.goals }}</div>
-        <div class="col-12">{{ form.topical_keywords.label_tag }} {{ form.topical_keywords }}</div>
-        <div class="col-12">{{ form.bio.label_tag }} {{ form.bio }}</div>
-        <div class="col-12">{{ form.style_self_desc.label_tag }} {{ form.style_self_desc }}</div>
-        <div class="col-12 col-md-6">{{ form.industry.label_tag }} {{ form.industry }}</div>
+<style>
+  :root{
+    --white:#fff; --soft:#d9dcff; --accent:#7c80ff; --accent-2:#23a6d5;
+  }
+  html, body { height:100%; }
+  body{ font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--white); background:transparent; }
+
+  /* Make the top navbar see-through on this page */
+  .navbar{
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+  .navbar .navbar-brand, .navbar .nav-link{ color:#fff !important; }
+
+  /* ===== Fixed full-screen background (behind EVERYTHING) ===== */
+  .bg-layer{
+    position:fixed; inset:0; z-index:-1; /* behind content + navbar */
+  }
+  .bg-layer::before{
+    content:""; position:absolute; inset:0;
+    background-image: var(--img, none);
+    background-size:cover; background-position:center;
+    filter: blur(2px) saturate(1.1);
+    transition: opacity .5s ease, background-image .4s ease;
+    opacity:1;
+  }
+  .bg-layer::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(6,8,20,.70), rgba(6,8,20,.70));
+  }
+
+  /* ===== Wizard container ===== */
+  .stage{ min-height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; }
+  .wizard{ width:min(880px,92vw); }
+  .lead-top h1{ font-weight:800; letter-spacing:.3px; margin-bottom:.25rem; }
+  .lead-top p{ color:var(--soft); margin-bottom:1rem; }
+
+  .progress-wrap{ margin:.75rem auto 1.25rem; width:100%; }
+  .bar{ height:6px; border-radius:999px; background:rgba(255,255,255,.18); overflow:hidden; }
+  .bar > i{ display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--accent), var(--accent-2)); transition:width .35s ease; }
+  .steps-label{ font-size:.9rem; color:var(--soft); margin-top:.35rem; }
+
+  .card-clean{ background:transparent; border:0; padding:0; }
+  .question{ animation:fadeIn .35s ease both; }
+  .q-title{ font-size:1.85rem; font-weight:800; margin-bottom:.35rem; }
+  .q-sub{ color:var(--soft); max-width:900px; margin:0 auto 1.1rem; }
+
+  .underline-input{
+    width:100%; max-width:960px; margin:0 auto 1rem; color:var(--white);
+    background:transparent; border:0; border-bottom:2px solid rgba(255,255,255,.45);
+    outline:0; padding:.6rem .25rem .4rem; font-size:1.05rem;
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .underline-input:focus{ border-bottom-color:var(--accent); background:rgba(255,255,255,.05); }
+
+  .actions{ display:flex; gap:.6rem; justify-content:center; margin-top:.75rem; }
+  .btn-ghost, .btn-solid{
+    border-radius:999px; padding:.6rem 1.15rem; font-weight:700; cursor:pointer;
+    border:1px solid rgba(255,255,255,.35); background:transparent; color:var(--white);
+  }
+  .btn-solid{ background:linear-gradient(90deg, var(--accent), var(--accent-2)); border:0; }
+
+  .fade-out{ animation:fadeOut .25s ease forwards; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+  @keyframes fadeOut{ to{opacity:0; transform:translateY(-6px)} }
+
+  .tiny{ font-size:.95rem; color:var(--soft); margin-top:1rem; }
+  .tiny a{ color:#fff; text-decoration:underline; }
+  input[type="file" i] {
+    border-radius:999px !important; padding:.6rem 1.15rem !important; font-weight:700; cursor:pointer !important;
+    border:1px solid rgba(255,255,255,.35) !important; background:transparent !important; color:var(--white) !important;
+  }
+</style>
+
+
+
+<div class="stage" id="stage" aria-live="polite"></div>
+
+<form id="onboardingForm" method="post" class="d-none ai-action">
+  {% csrf_token %}
+  <!-- Hidden real form fields that will be submitted to Django -->
+  <input type="hidden" name="writing_style_keywords" id="f_writing_style_keywords">
+  <input type="hidden" name="goals" id="f_goals">
+  <input type="hidden" name="topical_keywords" id="f_topical_keywords">
+  <input type="hidden" name="bio" id="f_bio">
+  <input type="hidden" name="style_self_desc" id="f_style_self_desc">
+  <input type="hidden" name="industry" id="f_industry">
+</form>
+
+<script>
+(function(){
+  // ——— Slides config (6 steps) ———
+  const slides = [
+    {
+      key:"writing_style_keywords",
+      title:"What is your typical writing style according to you?",
+      sub:'For example: “funny”, “witty”, “research-backed”, or any way you describe your writing style.',
+      placeholder:"e.g., witty, concise, data-led",
+      bg:"https://i.pinimg.com/1200x/8b/11/45/8b11454346f47b17734ee48643bc704e.jpg",
+      type:"text"
+    },
+    {
+      key:"goals",
+      title:"What are your Goals with Vero?",
+      sub:"What do you want to write about through Vero — your brand, yourself, insights, your products, or others?",
+      placeholder:"What do you want from the content?",
+      bg:"https://i.pinimg.com/1200x/6e/4d/d9/6e4dd90db26d58d5f0ca7c145943491e.jpg",
+      type:"textarea"
+    },
+    {
+      key:"topical_keywords",
+      title:"Give us your Topical Keywords.",
+      sub:'These often appear in your blog titles or post subjects. e.g., “sweet”, “sugar”, “cotton candy”, “beautiful”.',
+      placeholder:"Comma-separated keywords",
+      bg:"https://i.pinimg.com/736x/98/3f/55/983f551ae9d735e4b6a1b1aac9248ff2.jpg",
+      type:"text"
+    },
+    {
+      key:"bio",
+      title:"Your Bio",
+      sub:"Tell us a little about you or your brand — what you do, what you love. You can paste your LinkedIn bio.",
+      placeholder:"One paragraph about you/your brand",
+      bg:"https://i.pinimg.com/736x/38/e0/6d/38e06de0aedc6e7f159762546a2aebe2.jpg",
+      type:"textarea"
+    },
+    {
+      key:"style_self_desc",
+      title:"Describe what you think about when you write.",
+      sub:'If it’s unicorns, write “unicorns”. If it’s “getting the communication right”, write that. Keep it honest.',
+      placeholder:"A few lines about your inner compass while writing",
+      bg:"https://i.pinimg.com/1200x/f0/ce/dd/f0cedd3528d17626bd32f112467aeef2.jpg",
+      type:"textarea"
+    },
+    {
+      key:"industry",
+      title:"Finally, what industry do you belong to?",
+      sub:"The industry you or your brand belongs to.",
+      placeholder:"e.g., D2C fashion, SaaS CX",
+      bg:"https://i.pinimg.com/1200x/42/bb/0f/42bb0fe349bb3fe06330f56f8e09614d.jpg",
+      type:"text",
+      doneLabel:"Save & Continue"
+    }
+  ];
+
+  // ——— DOM builders ———
+  
+  const form = document.getElementById('onboardingForm');
+
+  let i = 0; const answers = {};
+  const bgLayer = document.getElementById('bgLayer');
+  const stage = document.getElementById('stage') || document.createElement('div');
+
+  function setBackground(url){
+    bgLayer.style.setProperty('--bg', `url("${url}")`);
+    bgLayer.style.setProperty('background-image', `url("${url}")`); // fallback (not used)
+    bgLayer.style.setProperty('background', 'transparent');         // keep text crisp
+    bgLayer.style.setProperty('--url', url);
+    bgLayer.style.background = 'transparent'; // no default bg
+    // drive via ::before
+    bgLayer.style.setProperty('--img', `url("${url}")`);
+    bgLayer.style.setProperty('--x', Date.now()); // nudge repaint
+    bgLayer.style.setProperty('--opacity', 1);
+    bgLayer.style.setProperty('--scale', 1);
+    bgLayer.style.setProperty('--blur', '2px');
+  }
+  // Hook the pseudo-element
+  const sheet = document.createElement('style');
+  sheet.innerHTML = `.stage::before{ background-image: var(--img, none); }`;
+  document.head.appendChild(sheet);
+
+  function progressHTML(stepIndex){
+    const human= stepIndex+1;
+    const pct = ((stepIndex)/slides.length)*100;
+    return `
+      <div class="progress-wrap">
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="steps-label">${stepIndex} / ${slides.length}</div>
+      </div>`;
+  }
+
+  function render(step){
+    const s = slides[step];
+    setBackground(s.bg);
+    stage.innerHTML = `
+      <div class="wizard">
+        <div class="lead-top">
+          <h1>Let’s learn more about you.</h1>
+          <p>These details help us get your voice and topics right.</p>
+          ${progressHTML(step)}
+        </div>
+
+        <div class="card-clean question" id="q">
+          <h2 class="q-title">${s.title}</h2>
+          <p class="q-sub">${s.sub}</p>
+
+          ${s.type === 'textarea'
+            ? `<textarea id="answer" class="underline-input" rows="4" placeholder="${s.placeholder}"></textarea>`
+            : `<input id="answer" class="underline-input" type="text" placeholder="${s.placeholder}">`
+          }
+
+          <div class="actions">
+            ${step>0 ? `<button class="btn-ghost" type="button" id="backBtn">Back</button>` : ``}
+            <button class="btn-solid" type="button" id="nextBtn">${s.doneLabel || "Done"}</button>
+          </div>
+
+          <div class="tiny">Already have an account? <a href="{% url 'login' %}">Log in</a></div>
+        </div>
       </div>
-      <button class="btn btn-success mt-3">Save & Continue</button>
-    </form>
-  </div>
-</div>
+    `;
+
+    // focus input
+    const input = document.getElementById('answer');
+    input.value = answers[s.key] || "";
+    setTimeout(()=> input.focus(), 50);
+
+    // handlers
+    const next = document.getElementById('nextBtn');
+    next.onclick = ()=>{
+      answers[s.key] = input.value.trim();
+      go(step+1);
+    };
+    const back = document.getElementById('backBtn');
+    if(back){ back.onclick = ()=> go(step-1); }
+
+    // submit on Enter (except textareas)
+    if(s.type !== 'textarea'){
+      input.addEventListener('keydown', e=>{
+        if(e.key === 'Enter'){ e.preventDefault(); next.click(); }
+      });
+    }
+  }
+
+  function go(step){
+    // fade out current
+    const q = document.getElementById('q');
+    if(q){ q.classList.add('fade-out'); }
+
+    setTimeout(()=>{
+      if(step >= slides.length){
+        // copy answers into hidden Django fields and submit
+        document.getElementById('f_writing_style_keywords').value = answers.writing_style_keywords || "";
+        document.getElementById('f_goals').value                  = answers.goals || "";
+        document.getElementById('f_topical_keywords').value       = answers.topical_keywords || "";
+        document.getElementById('f_bio').value                    = answers.bio || "";
+        document.getElementById('f_style_self_desc').value        = answers.style_self_desc || "";
+        document.getElementById('f_industry').value               = answers.industry || "";
+        form.submit();
+        return;
+      }
+      i = step;
+      
+      render(i);   // then render actual slide
+    }, 220);
+  }
+
+  // Initial paint
+  render(0);
+})();
+</script>
 {% endblock %}
+</div>
