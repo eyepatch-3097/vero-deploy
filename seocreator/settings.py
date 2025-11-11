@@ -146,7 +146,7 @@ LOGOUT_REDIRECT_URL = "login"
 
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"  # default to the disk path on Render
+MEDIA_ROOT = "/var/media"  # default to the disk path on Render
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = not DEBUG
