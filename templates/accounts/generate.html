@@ -1,59 +1,186 @@
 {% extends "base.html" %}
 {% block title %}Generate Content{% endblock %}
 {% block content %}
-<div class="row gy-4">
-  <div class="col-lg-7">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="mb-3">Generate New Draft</h5>
-        <p class="text-muted small mb-3">
-          Costs: <strong>Blog = 6</strong> credits, <strong>LinkedIn = 2</strong> credits. Your balance: <strong>{{ user.credits }}</strong>
-        </p>
-        <form method="post" class="row g-3 ai-action">
+
+<!-- Lottie (once per page) -->
+<script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.5/dist/dotlottie-wc.js" type="module"></script>
+
+<style>
+  :root{
+    --fg:#fff; --soft:#d7dbff;
+    --glass:rgba(255,255,255,.08); --glass-bd:rgba(255,255,255,.18);
+  }
+  body{ font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--fg); }
+
+  /* Background */
+  .page-bg::before{
+    content:""; position:fixed; inset:0; z-index:-1;
+    background:
+      linear-gradient(180deg, rgba(6,8,20,.80), rgba(6,8,20,.80)),
+      url("https://i.pinimg.com/1200x/8d/24/77/8d2477eea3bb8a4c440746a25d565762.jpg") center/cover no-repeat;
+    filter:saturate(1.05) blur(1px);
+  }
+  .wrap{ max-width:1200px; margin:8px auto 48px; padding:0 16px; }
+
+  /* Hero */
+  .hero{ text-align:center; padding:10px 0 6px; margin-top: 10px; margin-bottom: 10px;}
+  .hero h1{ font-weight:800; letter-spacing:.2px; margin:.25rem 0 .35rem; }
+  .hero .sub{ color:var(--soft); max-width:980px; margin:0 auto; }
+
+  /* Cards */
+  .cardx{
+    position:relative; border-radius:18px; background:var(--glass);
+    border:1px solid var(--glass-bd); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 10px 30px rgba(0,0,0,.28); transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .cardx:hover{ transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,.38); }
+  .cardx-body{ padding:18px 20px; }
+  .divider{ height:1px; background:rgba(255,255,255,.14); margin:.75rem 0 1rem; }
+  .muted{ color:rgba(255,255,255,.78); }
+
+  /* Underline inputs (text + date) */
+  .underline{
+    width:100%; color:#fff; background:transparent; border:0;
+    border-bottom:2px solid rgba(255,255,255,.45);
+    padding:.7rem .25rem .5rem; outline:0; font-size:1rem;
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .underline:focus{ border-bottom-color:#7c80ff; background:rgba(255,255,255,.06); }
+
+  /* Light select */
+  .selectx{
+    width:100%; color:#0f1220; background:#f3f6ff; border:0;
+    border-radius:10px; padding:.65rem .8rem; font-weight:600;
+  }
+
+  /* Buttons */
+  .btn-solid{ border:0; border-radius:999px; padding:.6rem 1.15rem; font-weight:700;
+    background:linear-gradient(90deg,#6a5cff,#23a6d5); color:#fff; }
+  .btn-ghost{ border-radius:999px; padding:.55rem 1rem; font-weight:700;
+    background:transparent; border:1px solid rgba(255,255,255,.28); color:#fff; }
+
+  /* Two-column grid (Bootstrap friendly but independent) */
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width: 992px){ .grid-2{ grid-template-columns:1fr; } }
+
+  /* Tiny chips */
+  .chip{
+    display:inline-flex; gap:.45rem; padding:.35rem .7rem; border-radius:999px;
+    border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.06); font-weight:700;
+  }
+
+  #id_type {
+    appearance:none; -webkit-appearance:none;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.22);
+    color:#fff; border-radius:12px; padding:.65rem .9rem;
+    backdrop-filter:blur(8px);
+    width:100%;
+  }
+  /* Underline look for date + topic */
+  #id_target_date, #id_topic {
+    background:transparent; color:#fff;
+    border:none; border-bottom:2px solid rgba(255,255,255,.35);
+    padding:.45rem 0; width:100%;
+  }
+  #id_target_date:focus, #id_topic:focus { outline:none; border-bottom-color:#7c80ff; }
+
+  .pills {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hero h1{ font-family:"Instrument Serif", serif;font-weight:400; font-size: 4rem; margin-top:2rem; margin-bottom: 2rem; }
+</style>
+
+<div class="page-bg"></div>
+<div class="wrap">
+
+  <!-- Hero with Lottie -->
+  <div class="hero">
+    
+    <h1>Create Your Next Masterpiece</h1>
+    <p class="sub">
+      You decide the topic, we help you write the way you would write it, and balance it with the right discovery content.
+    </p>
+  </div>
+
+  
+    <!-- LEFT: Form -->
+    <section class="">
+      <div class="cardx-body">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-1 pills">
+          <span class="chip">Blog = 6 credits</span>
+          <span class="chip">LinkedIn = 2 credits</span>
+          <span class="chip">Balance: {{ user.credits }}</span>
+        </div>
+        <div class="divider"></div>
+
+        <form method="post" class="ai-action">
           {% csrf_token %}
-          <div class="col-md-4">
-            <label class="form-label">Type</label>
-            {{ form.type }}
+
+          <div class="mb-3">
+            <label class="form-label">Your Content Type</label>
+            <!-- Render select as-is, then restyle via CSS -->
+            <div><span class="d-block"><!-- wrapper to avoid django attrs -->
+              {{ form.type }}
+            </span></div>
           </div>
-          <div class="col-md-4">
-            <label class="form-label">Target Date</label>
+
+          <div class="mb-3">
+            <label class="form-label">When Would You Like to Publish this</label>
+            <!-- Date input gets underline look -->
+            
             {{ form.target_date }}
+            
           </div>
-          <div class="col-md-12">
-            <label class="form-label">Topic / Title</label>
+
+          <div class="mb-4">
+            <label class="form-label">Your Topic</label>
+            
             {{ form.topic }}
+            
           </div>
-          <div class="col-12">
-            <button class="btn btn-primary">Generate</button>
-            <a class="btn btn-outline-secondary" href="{% url 'history' %}">View History</a>
+
+          <div class="d-flex gap-2">
+            <button class="btn-solid">Generate</button>
+            <a class="btn-ghost" href="{% url 'history' %}">View History</a>
           </div>
         </form>
+
         {% if pillar_for_day %}
-          <hr/>
-          <p class="small text-muted mb-1">Suggestions for this date (Pillar: <strong>{{ pillar_for_day.title }}</strong>)</p>
+          <div class="divider"></div>
+          <p class="muted small mb-2">
+            Suggestions for this date (Pillar: <strong>{{ pillar_for_day.title }}</strong>)
+          </p>
           {% if suggestions %}
             <div class="list-group">
               {% for s in suggestions %}
-                <a class="list-group-item list-group-item-action" href="{% url 'generate' %}?prefill={{ s|urlencode }}&date={{ form.target_date.value|default_if_none:'' }}">
+                <a class="list-group-item list-group-item-action"
+                   href="{% url 'generate' %}?prefill={{ s|urlencode }}&date={{ form.target_date.value|default_if_none:'' }}">
                   Use: {{ s }}
                 </a>
               {% endfor %}
             </div>
           {% else %}
-            <p class="text-muted mb-0">No suggestions for this day.</p>
+            <p class="muted small mb-0">No suggestions for this day.</p>
           {% endif %}
         {% endif %}
-        <p class="small text-muted mt-3 mb-0">Using Style Profile v{{ active_profile.version }}.</p>
+
+        <p class="muted small mt-3 mb-0">Using Style Profile v{{ active_profile.version }}.</p>
       </div>
-    </div>
-  </div>
-  <div class="col-lg-5">
-    <div class="card">
-      <div class="card-body">
-        <h6 class="mb-2">Planning Tips</h6>
-        <p class="small text-muted mb-0">Pick any date for which you want to generate content. Your weekly schedule drives suggestions for that day.</p>
+    </section>
+
+    <!-- RIGHT: Planning Tips -->
+    <section class="cardx">
+      <div class="cardx-body">
+        <h5 class="mb-2">Planning Tips</h5>
+        <p class="muted mb-0">
+          Pick any date for which you want to generate content. Your weekly schedule drives suggestions for that day.
+        </p>
       </div>
-    </div>
-  </div>
+    </section>
+  
 </div>
+
 {% endblock %}
