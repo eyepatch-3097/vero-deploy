@@ -1,31 +1,118 @@
 {% extends "base.html" %}
 {% block title %}History{% endblock %}
 {% block content %}
-<h5>History</h5>
-{% if items %}
-  <div class="list-group">
-    {% for it in items %}
-      <a href="{% url 'content_detail' it.id %}" class="list-group-item list-group-item-action">
-        <div class="d-flex w-100 justify-content-between">
-          <h6 class="mb-1">{{ it.get_type_display }} — {{ it.topic }}</h6>
-          <small class="text-muted">{{ it.created_at|date:"Y-m-d H:i" }}</small>
-        </div>
-        <small class="text-muted">Status: {{ it.get_status_display }}</small>
-      </a>
-    {% endfor %}
+
+<style>
+  :root{
+    --fg:#fff; --soft:#cfd5ff;
+    --glass:rgba(255,255,255,.08); --glass-bd:rgba(255,255,255,.18);
+    --accent1:#6a5cff; --accent2:#23a6d5;
+  }
+  body{ font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--fg); }
+
+  .hero h1{ font-family:"Instrument Serif", serif;font-weight:400; font-size: 4rem; margin-top:2rem; margin-bottom: 2rem; }
+  /* Full-page background */
+  .page-bg::before{
+    content:""; position:fixed; inset:0; z-index:-1;
+    background:
+      linear-gradient(180deg, rgba(6,8,20,.82), rgba(6,8,20,.82)),
+      url("https://i.pinimg.com/1200x/57/bb/fa/57bbfac7f8004751e81ba6812d195bbe.jpg") center/cover no-repeat;
+    filter:saturate(1.06) blur(1px);
+  }
+
+  .wrap{ max-width:1100px; margin:10px auto 40px; padding:0 16px; }
+
+  /* Hero */
+  .hero{ text-align:center; margin:6px 0 18px; }
+  .hero h1{ font-weight:400; letter-spacing:.2px; margin:.25rem 0 .25rem; }
+  .hero p{ color:var(--soft); margin:0; }
+
+  /* Glass list container */
+  .cardx{
+    position:relative; border-radius:18px; background:var(--glass);
+    border:1px solid var(--glass-bd); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 10px 30px rgba(0,0,0,.28);
+  }
+
+  /* Each history row as a link-card */
+  .hitem{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:14px; padding:14px 18px; text-decoration:none; color:var(--fg);
+    border-bottom:1px solid rgba(255,255,255,.10); transition:background .15s ease, transform .15s ease;
+  }
+  .hitem:last-child{ border-bottom:0; border-radius:0 0 18px 18px; }
+  .hitem:first-child{ border-radius:18px 18px 0 0; }
+  .hitem:hover{ background:rgba(255,255,255,.05); transform:translateY(-1px); }
+
+  .title{ font-weight:750; line-height:1.25; }
+  .meta{ color:var(--soft); font-size:.92rem; }
+
+  /* Badges */
+  .badge{
+    display:inline-flex; align-items:center; gap:.45rem;
+    border-radius:999px; padding:.28rem .6rem; font-weight:800; font-size:.78rem;
+    border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.10);
+  }
+  .b-type{ background:linear-gradient(90deg, rgba(106,92,255,.25), rgba(35,166,213,.25)); border:0; }
+  .b-draft{ background:rgba(255,255,255,.10); }
+  .time{ color:var(--soft); font-size:.9rem; white-space:nowrap; }
+
+  /* Pagination */
+  .pager{ display:flex; align-items:center; gap:10px; margin-top:14px; }
+  .pager .chip{
+    display:inline-flex; align-items:center; gap:.45rem; padding:.4rem .7rem; border-radius:999px;
+    background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.22); font-weight:700; color:#fff;
+  }
+  .pager a{ text-decoration:none; }
+  .btn-ghost{
+    border-radius:999px; padding:.5rem .95rem; font-weight:700;
+    background:transparent; border:1px solid rgba(255,255,255,.28); color:#fff;
+  }
+  .btn-ghost:hover{ background:rgba(255,255,255,.08); }
+</style>
+
+<div class="page-bg"></div>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>Your Content History</h1>
+    <p>All the drafts you’ve generated — neat, searchable, and ready to reopen.</p>
   </div>
-  <nav class="mt-3">
-    <ul class="pagination">
+
+  {% if items %}
+    <div class="cardx">
+      {% for it in items %}
+        <a class="hitem" href="{% url 'content_detail' it.id %}">
+          <div style="min-width:0">
+            <div class="title text-truncate">
+              {{ it.get_type_display }} — {{ it.topic }}
+            </div>
+            <div class="meta">
+              <span class="badge b-type">{{ it.get_type_display }}</span>
+              <span class="badge b-draft">Status: {{ it.get_status_display }}</span>
+            </div>
+          </div>
+          <div class="time">{{ it.created_at|date:"Y-m-d H:i" }}</div>
+        </a>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    <div class="pager">
       {% if items.has_previous %}
-      <li class="page-item"><a class="page-link" href="?page={{ items.previous_page_number }}">Prev</a></li>
+        <a class="btn-ghost" href="?page={{ items.previous_page_number }}">‹ Prev</a>
       {% endif %}
-      <li class="page-item disabled"><span class="page-link">Page {{ items.number }} / {{ items.paginator.num_pages }}</span></li>
+      <span class="chip">Page {{ items.number }} / {{ items.paginator.num_pages }}</span>
       {% if items.has_next %}
-      <li class="page-item"><a class="page-link" href="?page={{ items.next_page_number }}">Next</a></li>
+        <a class="btn-ghost" href="?page={{ items.next_page_number }}">Next ›</a>
       {% endif %}
-    </ul>
-  </nav>
-{% else %}
-  <p class="text-muted">No content yet. <a href="{% url 'generate' %}">Generate your first draft</a>.</p>
-{% endif %}
+    </div>
+  {% else %}
+    <div class="cardx" style="padding:18px 20px;">
+      <p class="meta mb-1">No content yet.</p>
+      <a class="btn-ghost" href="{% url 'generate' %}">Generate your first draft</a>
+    </div>
+  {% endif %}
+</div>
+
 {% endblock %}
