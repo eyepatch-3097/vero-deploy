@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
+from django.views.static import serve as dj_serve
 from django.conf import settings
 from django.conf.urls.static import static
 from accounts.views import (
