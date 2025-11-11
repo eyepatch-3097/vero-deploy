@@ -2,87 +2,169 @@
 {% block title %}My Profile{% endblock %}
 {% block content %}
 <style>
-  .feature-card{
-    text-align:center;
-    border: none;
-    background: #f8f9fb;
-    border-radius: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.05);
-    transition: all .2s ease;
+  :root{
+    --fg:#fff; --fg-soft:#d7dbff;
   }
-  .feature-card:hover{ transform:translateY(-3px); box-shadow:0 6px 18px rgba(0,0,0,.08);}
-  .feature-card img{ height:64px; opacity:.85; }
-  .feature-card h5{ font-weight:700; margin-top:.75rem; }
-  .feature-card ul{ text-align:left; margin:1rem auto 0; max-width:240px; color:#333; }
+  body{ font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--fg); }
+
+  /* Full-page background */
+  .page-bg::before{
+    content:""; position:fixed; inset:0; z-index:-1;
+    background:
+      linear-gradient(180deg, rgba(6,8,20,.75), rgba(6,8,20,.75)),
+      url("https://i.pinimg.com/736x/64/0d/83/640d83ea218b5ca23164a9ec2fcd2846.jpg") center/cover no-repeat;
+    filter:saturate(1.05) blur(1px);
+  }
+
+  /* Local layout (self-contained grid) */
+  .page-wrap{ max-width:1200px; margin:24px auto 40px; padding:0 16px; }
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  .grid-3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:24px; }
+  @media (max-width: 992px){
+    .grid-2{ grid-template-columns:1fr; }
+    .grid-3{ grid-template-columns:1fr; }
+  }
+
+  /* ===== Glassy card base ===== */
+  .cardx{
+    position:relative; border-radius:20px; height:100%;
+    background:rgba(0, 0, 0, 0);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 5px 10px rgba(255, 253, 253, 0.062);
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    border:1px solid rgb(255, 255, 255); /* default subtle border */
+    border-radius: 20px;
+  }
+  .cardx:hover{ transform:translateY(-4px); box-shadow:0 16px 40px rgba(0,0,0,.38); }
+  .cardx-body{ padding:18px 20px; }
+
+  .cardx.ring::before{
+  content: "";
+  position: absolute;
+  inset: 0;                 /* full box */
+  border-radius: inherit;   /* perfectly matches corners */
+  padding: 2px;             /* ring thickness (1–3px looks best) */
+  background: var(--ring-gradient, linear-gradient(135deg,#000000,#000000));
+  /* mask out the center so only the border shows */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;     /* decorative only */
+}
+
+/* ---- Ring color variants (just change the gradient) ---- 
+.ring-account{ --ring-gradient: linear-gradient(135deg, #4f46e5, rgba(79,70,229,.35)); }
+.ring-usage  { --ring-gradient: linear-gradient(135deg, #23a6d5, rgba(35,166,213,.35)); } */
+.ring-u      { --ring-gradient: linear-gradient(135deg, #6a5cff, #7a8cff, #23a6d5); }
+.ring-p      { --ring-gradient: linear-gradient(135deg, #ff8a00, #ff5f6d, #845ef7); }
+.ring-w      { --ring-gradient: linear-gradient(135deg, #10b981, #06b6d4, #2563eb); }
+
+  .section-title{ font-family:"Instrument Serif", serif;font-weight:400; font-size: 2rem; margin-top:2rem; margin-bottom: 2rem; }
+  .section-title.center{ text-align:center; margin-top:28px; }
+  .divider{ height:1px; background:rgba(255,255,255,.15); margin:.6rem 0 1rem; }
+  .profile-title {font-size: 3rem;}
+
+  /* Chips and lists */
+  .chip{
+    display:inline-flex; align-items:center; gap:.45rem;
+    padding:.4rem .7rem; border-radius:999px;
+    background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.3); font-weight:700;
+  }
+  .list-light{ color:var(--fg-soft); margin:0; padding-left:1.2rem; }
+  .list-light > li{ margin:.28rem 0; }
+
+  /* Feature cards */
+  .feature{ text-align:center; padding:22px 20px 18px; }
+  .icon-wrap{
+    height:76px; width:76px; margin:0 auto .9rem; border-radius:20px;
+    background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center;
+    border:1px solid rgba(255,255,255,.28); backdrop-filter:blur(6px);
+    transition:transform .18s ease;
+  }
+  .cardx:hover .icon-wrap{ transform:scale(1.05); }
+  .icon-wrap img{ height:36px; filter:invert(1) brightness(1.15); }
+  .feature h5{ font-weight:800; margin:.4rem 0 .25rem; }
+  .ticks{ list-style:none; padding:0; margin:.55rem auto 0; max-width:380px; color:var(--fg-soft); text-align:left; }
+  .ticks li{ position:relative; padding-left:1.25rem; margin:.35rem 0; }
+  .ticks li::before{ content:"✓"; position:absolute; left:0; top:0; color:#b6ffbf; font-weight:800; }
+
 </style>
 
-<div class="container">
-  <!-- Feature cards -->
-  <div class="row g-4 mb-4">
-    <div class="col-md-4">
-      <div class="card feature-card p-4">
-        <img src="https://img.icons8.com/?size=100&id=0cmTm5lj3iVJ&format=png&color=000000" alt="Understands icon" class="mx-auto">
-        <h5>Vero Understands</h5>
-        <ul class="small">
-          <li>Reads your writing samples to learn tone and vocabulary</li>
-          <li>Builds an adaptive style profile unique to you</li>
-          <li>Understands what topics you usually cover</li>
-        </ul>
-      </div>
-    </div>
+<div class="page-bg"></div>
+<div class="page-wrap">
 
-    <div class="col-md-4">
-      <div class="card feature-card p-4">
-        <img src="https://img.icons8.com/?size=100&id=ZgeuqAVHqED4&format=png&color=000000" alt="Plans icon" class="mx-auto">
-        <h5>Vero Plans</h5>
-        <ul class="small">
-          <li>Creates weekly and monthly content calendars</li>
-          <li>Aligns ideas with your topical pillars</li>
-          <li>Lets you auto-populate days with one click</li>
-        </ul>
+  <!-- Row A: Account | Usage -->
+  <div class="grid-2">
+    <section class="">
+      <div class="cardx-body">
+        <h4 class="section-title">Account</h4>
+        <div class="divider"></div>
+        <p class="mb-2"><strong>Username:</strong> {{ user.username }}</p>
+        <p class="mb-2"><strong>Email:</strong> {{ user.email }}</p>
+        <p class="mb-3"><strong>Timezone:</strong> {{ user.timezone }}</p>
+        <span class="chip">Credits: {{ user.credits }}</span>
       </div>
-    </div>
+    </section>
 
-    <div class="col-md-4">
-      <div class="card feature-card p-4">
-        <img src="https://img.icons8.com/?size=100&id=Zdee9zmYrnty&format=png&color=000000" alt="Writes icon" class="mx-auto">
-        <h5>Vero Writes</h5>
-        <ul class="small">
-          <li>Generates SEO blogs and LinkedIn posts in your tone</li>
-          <li>Improves drafts based on feedback instantly</li>
-          <li>Publishes approved pieces to your channels</li>
+    <section class="">
+      <div class="cardx-body">
+        <h4 class="section-title">Usage</h4>
+        <div class="divider"></div>
+        <ul class="list-light">
+          <li>Blogs generated: <strong>{{ usage.blogs_generated }}</strong></li>
+          <li>LinkedIn generated: <strong>{{ usage.linkedin_generated }}</strong></li>
+          <li>Improvements: <strong>{{ usage.improvements }}</strong></li>
+          <li>Last action: <strong>{{ usage.last_action|default:"—" }}</strong></li>
         </ul>
       </div>
-    </div>
+    </section>
   </div>
 
-  <!-- Account + usage -->
-  <div class="row gy-3">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-body">
-          <h5>Account</h5>
-          <p class="mb-1"><strong>Username:</strong> {{ user.username }}</p>
-          <p class="mb-1"><strong>Email:</strong> {{ user.email }}</p>
-          <p class="mb-1"><strong>Timezone:</strong> {{ user.timezone }}</p>
-          <p class="mb-0"><span class="badge text-bg-primary">Credits: {{ user.credits }}</span></p>
-        </div>
-      </div>
-    </div>
+  <!-- Centered section heading -->
+  <h4 class="section-title center profile-title">What You Can Do With Vero?</h4>
 
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-body">
-          <h5>Usage</h5>
-          <ul class="mb-0">
-            <li>Blogs generated: {{ usage.blogs_generated }}</li>
-            <li>LinkedIn generated: {{ usage.linkedin_generated }}</li>
-            <li>Improvements: {{ usage.improvements }}</li>
-            <li>Last action: {{ usage.last_action|default:"—" }}</li>
-          </ul>
-        </div>
+  <!-- Row B: Three feature cards (glassy bg + multicolor borders) -->
+  <div class="grid-3">
+    <article class="cardx ring ring-u feature">
+      <div class="icon-wrap">
+        <img src="https://img.icons8.com/?size=100&id=0cmTm5lj3iVJ&format=png&color=ffffff" alt="Understands">
       </div>
-    </div>
+      <h5>Vero Understands</h5>
+      <ul class="ticks">
+        <li>Reads your writing samples to learn tone & vocabulary</li>
+        <li>Builds an adaptive style profile unique to you</li>
+        <li>Gets the topics you usually cover</li>
+      </ul>
+    </article>
+
+    <article class="cardx ring ring-p feature">
+      <div class="icon-wrap">
+        <img src="https://img.icons8.com/?size=100&id=ZgeuqAVHqED4&format=png&color=ffffff" alt="Plans">
+      </div>
+      <h5>Vero Plans</h5>
+      <ul class="ticks">
+        <li>Creates weekly & monthly content calendars</li>
+        <li>Aligns ideas with your topical pillars</li>
+        <li>Auto-populate days with one click</li>
+      </ul>
+    </article>
+
+    <article class="cardx ring ring-w feature">
+      <div class="icon-wrap">
+        <img src="https://img.icons8.com/?size=100&id=Zdee9zmYrnty&format=png&color=ffffff" alt="Writes">
+      </div>
+      <h5>Vero Writes</h5>
+      <ul class="ticks">
+        <li>Generates SEO blogs & LinkedIn posts in your tone</li>
+        <li>Improves drafts instantly based on feedback</li>
+        <li>Publishes approved pieces to your channels</li>
+      </ul>
+    </article>
   </div>
+
 </div>
 {% endblock %}
