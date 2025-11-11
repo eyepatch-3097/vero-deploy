@@ -2,242 +2,291 @@
 {% block title %}My Style{% endblock %}
 {% block content %}
 
-{# --- tiny page styles (optional: move to app.css later) --- #}
 <style>
-  .code-block{
-    background: #0f172a;           /* slate-900 */
-    color: #e2e8f0;                /* slate-200 */
-    border-radius: .5rem;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    font-size: .875rem;
-    line-height: 1.4;
-    padding: 1rem 1.25rem;
-    overflow:auto;
+  :root{
+    --fg:#fff; --soft:#d7dbff;
+    --glass:rgba(255,255,255,.08); --glass-bd:rgba(255,255,255,.18);
+    --ring:linear-gradient(135deg,#6a5cff,#7a8cff,#23a6d5);
   }
-  .progress{ height: 8px; background:#eef1f6; }
-  .progress + .small { color:#6b7280; }
-  .card h5 { font-weight:700; }
+  body{ font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; color:var(--fg); }
+
+  /* Background */
+  .page-bg::before{
+    content:""; position:fixed; inset:0; z-index:-1;
+    background:
+      linear-gradient(180deg,rgba(6,8,20,.82),rgba(6,8,20,.82)),
+      url("https://i.pinimg.com/1200x/a1/70/1f/a1701f327094e19908e266d26934ec52.jpg") center/cover no-repeat;
+    filter:saturate(1.05) blur(1px);
+  }
+
+  .wrap{ max-width:1200px; margin:12px auto 48px; padding:0 16px; }
+
+  /* Glass cards + gradient ring border that follows radius */
+  .cardx{
+    position:relative; border-radius:18px; 
+    -webkit-backdrop-filter:blur(10px);
+    border:1px solid var(--glass-bd); box-shadow:0 10px 30px rgba(0, 0, 0, 0);
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .cardx:hover{ transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,.38); }
+  .cardx-body{ padding:18px 20px; }
+  .ring::before{
+    content:""; position:absolute; inset:0; border-radius:inherit; padding:2px;
+    background:var(--ring);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none;
+  }
+
+  /* Headings */
+  .section-title{ font-weight:800; letter-spacing:.2px; margin:.25rem 0 .8rem; }
+  .subtle{ color:var(--soft); }
+
+  /* Thin glowing bars */
+  .meter{ height:6px; background:rgba(255,255,255,.12); border-radius:999px; overflow:hidden; }
+  .meter > i{
+    display:block; height:20%;
+    background:linear-gradient(90deg,#6a5cff,#7a8cff,#23a6d5,#10b981,#22d3ee);
+    box-shadow:0 0 8px rgba(124,128,255,.45);
+    transition:width .35s ease;
+  }
+
+  /* Underline inputs (like your login/onboarding) */
+  .underline{
+    width:100%; color:#fff; background:transparent; border:0;
+    border-bottom:2px solid rgba(255,255,255,.45);
+    padding:.7rem .25rem .5rem; outline:0; font-size:1rem;
+    transition:border-color .2s ease, background .2s ease;
+  }
+  .underline:focus{ border-bottom-color:#7c80ff; background:rgba(255,255,255,.06); }
+
+  .btn-ghost, .btn-solid{
+    border-radius:999px; padding:.55rem 1rem; font-weight:700; cursor:pointer;
+  }
+  .btn-solid{ background:linear-gradient(90deg,#6a5cff,#23a6d5); border:0; color:#fff; }
+  .btn-ghost{ background:transparent; border:1px solid rgba(255,255,255,.28); color:#fff; }
+
+  .section-title{ font-family:"Instrument Serif", serif;font-weight:400; font-size: 2rem; margin-top:2rem; margin-bottom: 2rem; }
+  /* Simple grid helpers (Bootstrap-friendly) */
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width: 992px){ .grid-2{ grid-template-columns:1fr; } }
+
+  .list-clean{ margin:0; padding:0; list-style:none; }
+  .list-clean li{ padding:.75rem 0; border-top:1px dashed rgba(255,255,255,.12); }
+  .list-clean li:first-child{ border-top:0; }
+  .file-badge{ font-size:.75rem; padding:.15rem .45rem; border:1px solid rgba(255,255,255,.25); border-radius:8px; }
+
+  .divider{ height:1px; background:rgba(255,255,255,.14); margin:.75rem 0 1rem; }
+  .muted{ color:rgba(255,255,255,.75); font-size:.9rem; }
+
+  /* Code/JSON block */
+  .code-block{
+    background:#0f172a; color:#e2e8f0; border-radius:.5rem;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono","Courier New",monospace;
+    font-size:.875rem; line-height:1.4; padding:1rem 1.25rem; overflow:auto;
+  }
+
+  .delete-btn {
+    border-color: rgb(245, 93, 93);
+    font-weight: 400;
+    color: rgb(245, 93, 93);
+  }
 </style>
 
 {% if fun_facts %}
 {{ fun_facts|json_script:"funFactsData" }}
 <style>
-  .facts-wrap { min-height: 56px; display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
-  .facts-line {
-    font-family: Helvetica, Arial, sans-serif; font-weight:700; font-size:2rem; letter-spacing:.2px;
+  .facts-wrap{ min-height:56px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
+  .facts-line{
+    font-weight:800; font-size:1.8rem; letter-spacing:.2px;
     background: linear-gradient(90deg,#7c3aed,#2563eb,#06b6d4,#10b981,#f59e0b,#ef4444,#ec4899,#7c3aed);
-    -webkit-background-clip: text; background-clip:text; color:transparent; background-size:200% 100%;
-    animation: hueShift 10s linear infinite; opacity:0; transition:opacity .6s ease; text-align:center; padding:4px 10px;
+    -webkit-background-clip:text; background-clip:text; color:transparent; background-size:200% 100%;
+    animation:hueShift 10s linear infinite; opacity:0; transition:opacity .6s ease; text-align:center; padding:4px 10px;
   }
-  .facts-line.show { opacity:1; }
-  @keyframes hueShift { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
+  .facts-line.show{ opacity:1; }
+  @keyframes hueShift{ 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
 </style>
-
-<div class="facts-wrap">
-  <div id="factLine" class="facts-line">…</div>
-</div>
-
+<div class="facts-wrap"><div id="factLine" class="facts-line">…</div></div>
 <script>
 (function(){
   const facts = JSON.parse(document.getElementById('funFactsData').textContent);
-  const el = document.getElementById('factLine');
-  if (!Array.isArray(facts) || facts.length === 0 || !el) return;
-
-  let i = 0;
-  function showFact(idx){
-    el.classList.remove('show');
-    setTimeout(()=>{ el.textContent = facts[idx]; el.classList.add('show'); }, 220);
-  }
-  showFact(i);
-  setInterval(()=>{ i = (i + 1) % facts.length; showFact(i); }, 3000);
+  const el = document.getElementById('factLine'); if(!Array.isArray(facts)||!facts.length) return;
+  let i = 0; const show = idx => { el.classList.remove('show'); setTimeout(()=>{ el.textContent=facts[idx]; el.classList.add('show'); },220); };
+  show(i); setInterval(()=>{ i=(i+1)%facts.length; show(i); },3000);
 })();
 </script>
 {% endif %}
 
+<div class="page-bg"></div>
+<div class="wrap">
 
-<div class="row gy-4">
-  <!-- LEFT: Uploads -->
-  <div class="col-lg-7">
-    <div class="card">
-      <div class="card-body">
-        <h5 class="mb-3">Uploads</h5>
-
-        <!-- Above the existing upload form -->
-<form method="post" action="{% url 'add_typed_post' %}" class="mb-3 ai-action">
-  {% csrf_token %}
-  <label class="form-label">Type out your recent post</label>
-  <textarea name="text" class="form-control" rows="4" placeholder="Paste or type your latest post…"></textarea>
-  <div class="d-flex justify-content-between align-items-center mt-2">
-    <small class="text-muted">We’ll use this plus your uploads to refine your Style Profile.</small>
-    <button class="btn btn-outline-primary">Save & Regenerate</button>
-  </div>
-</form>
-
-        <form method="post" action="{% url 'upload_file' %}" enctype="multipart/form-data" class="row g-2 align-items-center mb-3">
-          {% csrf_token %}
-          <div class="col-12 col-md-8">
-            {{ upload_form.file }}
-            <div class="form-text">Allowed: .txt, .pdf — Max 5 MB</div>
-          </div>
-          <div class="col-12 col-md-4 text-end">
-            <button class="btn btn-primary w-100">Upload</button>
-          </div>
-        </form>
-
-        {% if uploads %}
-          <ul class="list-group">
-            {% for u in uploads %}
-              <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>{{ u.file.name }}</strong>
-                  <span class="badge text-bg-secondary ms-2">{{ u.file_type }}</span>
-                  <div class="small text-muted">{{ u.bytes }} bytes • {{ u.created_at|date:"Y-m-d H:i" }}</div>
-                </div>
-                <form method="post" action="{% url 'delete_upload' u.id %}">
-                  {% csrf_token %}
-                  <button class="btn btn-outline-danger btn-sm">Delete</button>
-                </form>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="text-muted mb-0">No files yet. Upload a TXT/PDF to begin.</p>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT: Style Snapshot (progress bars + Regenerate) -->
-  <div class="col-lg-5">
-    <div class="card">
-      <div class="card-body">
+  <!-- Row 1: Author Preferences + Style Snapshot -->
+  <div class="grid-2">
+    <!-- Author Preferences -->
+    <section class="">
+      <div class="cardx-body">
         <div class="d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Your Style Snapshot</h5>
-          <form method="post" class="ai-action" action="{% url 'regenerate_style' %}">
+          <h5 class="section-title mb-0">Author Preferences</h5>
+          <button class="btn-ghost btn-sm" data-bs-toggle="collapse" data-bs-target="#prefsCollapse">Edit</button>
+        </div>
+        <div class="divider"></div>
+
+        <div class="muted">
+          <div><strong>Industry:</strong> {{ onboarding_form.instance.industry|default:"—" }}</div>
+          <div><strong>Topical keywords:</strong> {{ onboarding_form.instance.topical_keywords|default:"—" }}</div>
+          <div><strong>Style keywords:</strong> {{ onboarding_form.instance.writing_style_keywords|default:"—" }}</div>
+          <div><strong>Goals:</strong> {{ onboarding_form.instance.goals|default:"—" }}</div>
+        </div>
+
+        <div id="prefsCollapse" class="collapse mt-3">
+          <form method="post" action="{% url 'save_onboarding_inline' %}" class="ai-action vstack gap-3">
             {% csrf_token %}
-            <button class="btn btn-success btn-sm">Regenerate</button>
+            <div><label class="form-label">Industry</label>{{ onboarding_form.industry }}</div>
+            <div><label class="form-label">Topical keywords</label>{{ onboarding_form.topical_keywords }}</div>
+            <div><label class="form-label">Style keywords</label>{{ onboarding_form.writing_style_keywords }}</div>
+            <div><label class="form-label">Goals</label>{{ onboarding_form.goals }}</div>
+            <div><label class="form-label">Bio</label>{{ onboarding_form.bio }}</div>
+            <div><label class="form-label">How you describe your style (optional)</label>{{ onboarding_form.style_self_desc }}</div>
+            <div class="text-end"><button class="btn-solid">Save & Regenerate</button></div>
           </form>
         </div>
-        <hr class="mt-3"/>
+      </div>
+    </section>
+
+    <!-- Style Snapshot -->
+    <section class="">
+      <div class="cardx-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="section-title mb-0">Your Style Snapshot</h5>
+          <form method="post" class="ai-action" action="{% url 'regenerate_style' %}">
+            {% csrf_token %}<button class="btn-solid btn-sm">Regenerate</button>
+          </form>
+        </div>
+        <div class="divider"></div>
+
         {% if scores %}
           <div class="vstack gap-3">
             {% for label, val in scores.items %}
               <div>
-                <div class="d-flex justify-content-between">
-                  <span class="small">{{ label }}</span>
-                  <span class="small">{{ val }}/10</span>
+                <div class="d-flex justify-content-between muted mb-1">
+                  <span>{{ label }}</span><span>{{ val }}/10</span>
                 </div>
-                <div class="progress">
-                  <div class="progress-bar {% cycle 'bg-primary' 'bg-success' 'bg-info' 'bg-warning' 'bg-danger' 'bg-secondary' 'bg-dark' %}"
-                       role="progressbar"
-                       style="width: {{ val|floatformat:0 }}0%;"
-                       aria-valuenow="{{ val }}" aria-valuemin="0" aria-valuemax="10">
-                  </div>
-                </div>
+                <div class="meter"><i style="width: {{ val|floatformat:0 }}0%"></i></div>
               </div>
             {% endfor %}
           </div>
         {% else %}
-          <p class="text-muted mb-0">No style metrics yet. Upload files and click <em>Regenerate</em>.</p>
+          <p class="muted mb-0">No style metrics yet. Upload files and click <em>Regenerate</em>.</p>
         {% endif %}
       </div>
-    </div>
+    </section>
   </div>
-</div>
 
-<div class="card mt-4">
-  <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center">
-      <h5 class="mb-0">Author Preferences</h5>
-      <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#prefsCollapse">
-        Edit
-      </button>
-    </div>
+  <!-- Row 2: Uploaded Content -->
+  <section class="mt-4">
+    <div class="cardx-body">
+      <h5 class="section-title mb-0">Your Uploaded Content</h5>
+      <div class="divider"></div>
 
-    {# brief, always-visible summary #}
-    <div class="mt-2 small text-muted">
-      <div><strong>Industry:</strong> {{ onboarding_form.instance.industry|default:"—" }}</div>
-      <div><strong>Topical keywords:</strong> {{ onboarding_form.instance.topical_keywords|default:"—" }}</div>
-      <div><strong>Style keywords:</strong> {{ onboarding_form.instance.writing_style_keywords|default:"—" }}</div>
-      <div><strong>Goals:</strong> {{ onboarding_form.instance.goals|default:"—" }}</div>
-    </div>
-
-    <div id="prefsCollapse" class="collapse mt-3">
-      <form method="post" action="{% url 'save_onboarding_inline' %}" class="ai-action vstack gap-3">
-        {% csrf_token %}
-        <div>
-          <label class="form-label">Industry</label>
-          {{ onboarding_form.industry }}
-        </div>
-        <div>
-          <label class="form-label">Topical keywords (comma or line separated)</label>
-          {{ onboarding_form.topical_keywords }}
-        </div>
-        <div>
-          <label class="form-label">Style keywords</label>
-          {{ onboarding_form.writing_style_keywords }}
-        </div>
-        <div>
-          <label class="form-label">Goals</label>
-          {{ onboarding_form.goals }}
-        </div>
-        <div>
-          <label class="form-label">Bio</label>
-          {{ onboarding_form.bio }}
-        </div>
-        <div>
-          <label class="form-label">How you describe your style (optional)</label>
-          {{ onboarding_form.style_self_desc }}
-        </div>
-
-        <div class="d-flex justify-content-end">
-          <button class="btn btn-primary">Save & Regenerate</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-{# --- BOTTOM: collapsible JSON profile --- #}
-<div class="row mt-4">
-  <div class="col-12">
-    <div class="card">
-      <div class="card-body">
-        <div class="accordion" id="styleProfileAcc">
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="headingProfile">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProfile" aria-expanded="false" aria-controls="collapseProfile">
-                Style Profile (JSON)
-              </button>
-            </h2>
-            <div id="collapseProfile" class="accordion-collapse collapse" aria-labelledby="headingProfile" data-bs-parent="#styleProfileAcc">
-              <div class="accordion-body">
-                {% if active_profile and active_profile.summary_json %}
-                  {{ active_profile.summary_json|json_script:"profileJson" }}
-                  <pre class="code-block" id="profilePretty"></pre>
-                  <script>
-                    (function(){
-                      try {
-                        const data = JSON.parse(document.getElementById('profileJson').textContent);
-                        document.getElementById('profilePretty').textContent = JSON.stringify(data, null, 2);
-                      } catch(e) {
-                        document.getElementById('profilePretty').textContent = 'Profile JSON unavailable.';
-                      }
-                    })();
-                  </script>
-                  <div class="small text-muted mt-2">
-                    Version {{ active_profile.version }} • {{ active_profile.created_at|date:"Y-m-d H:i" }}
-                  </div>
-                {% else %}
-                  <p class="text-muted mb-0">No profile yet. Upload one or more files, then click <em>Regenerate</em>.</p>
-                {% endif %}
+      {% if uploads %}
+        <ul class="list-clean">
+          {% for u in uploads %}
+            <li class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ u.file.name }}</strong>
+                <span class="file-badge ms-2">{{ u.file_type }}</span>
+                <div class="muted small">{{ u.bytes }} bytes • {{ u.created_at|date:"Y-m-d H:i" }}</div>
               </div>
+              <form method="post" action="{% url 'delete_upload' u.id %}">
+                {% csrf_token %}<button class="btn-ghost delete-btn btn-sm">Delete</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted mb-0">No files yet. Upload a TXT/PDF to begin.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Row 3: Upload More Content -->
+  <section class="mt-4">
+    <div class="cardx-body">
+      <h5 class="section-title mb-0">Upload More Content</h5>
+      <div class="subtle">Type your content or Upload your PDF/TEXT files for us to learn.</div>
+      <div class="divider"></div>
+
+      <div class="grid-2">
+        <!-- A: typed content -->
+        <div>
+          <label class="muted d-block mb-2">Write your content here</label>
+          <form method="post" action="{% url 'add_typed_post' %}" class="ai-action">
+            {% csrf_token %}
+            <textarea name="text" rows="6" class="underline" placeholder="Paste or type your latest post…"></textarea>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+              <small class="muted">We’ll use this plus your uploads to refine your Style Profile.</small>
+              <button class="btn-solid">Save & Regenerate</button>
             </div>
-          </div>
-        </div> <!-- /accordion -->
+          </form>
+        </div>
+
+        <!-- B: file upload -->
+        <div>
+          <label class="muted d-block mb-2">Upload your file</label>
+          <form method="post" action="{% url 'upload_file' %}" enctype="multipart/form-data" class="row g-2 align-items-center">
+            {% csrf_token %}
+            <div class="col-12">
+              {{ upload_form.file }}
+              <div class="muted small">Allowed: .txt, .pdf — Max 5 MB</div>
+            </div>
+            <div class="col-12 text-end">
+              <button class="btn-solid">Upload</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
 
+  <!-- Bottom: Style Profile JSON -->
+  <section class="cardx ring mt-4">
+    <div class="cardx-body">
+      <div class="accordion" id="styleProfileAcc">
+        <div class="accordion-item bg-transparent">
+          <h2 class="accordion-header" id="headingProfile">
+            <button class="accordion-button collapsed" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#collapseProfile"
+                    aria-expanded="false" aria-controls="collapseProfile">
+              Style Profile (JSON)
+            </button>
+          </h2>
+          <div id="collapseProfile" class="accordion-collapse collapse"
+               aria-labelledby="headingProfile" data-bs-parent="#styleProfileAcc">
+            <div class="accordion-body">
+              {% if active_profile and active_profile.summary_json %}
+                {{ active_profile.summary_json|json_script:"profileJson" }}
+                <pre class="code-block" id="profilePretty"></pre>
+                <script>
+                  (function(){
+                    try{
+                      const data = JSON.parse(document.getElementById('profileJson').textContent);
+                      document.getElementById('profilePretty').textContent = JSON.stringify(data, null, 2);
+                    }catch(e){
+                      document.getElementById('profilePretty').textContent = 'Profile JSON unavailable.';
+                    }
+                  })();
+                </script>
+                <div class="muted small mt-2">
+                  Version {{ active_profile.version }} • {{ active_profile.created_at|date:"Y-m-d H:i" }}
+                </div>
+              {% else %}
+                <p class="muted mb-0">No profile yet. Upload one or more files, then click <em>Regenerate</em>.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
 {% endblock %}
