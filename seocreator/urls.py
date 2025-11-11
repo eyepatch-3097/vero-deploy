@@ -39,5 +39,7 @@ urlpatterns = [
     path("healthz/", lambda r: HttpResponse("ok", content_type="text/plain")),
 ]
 
-if settings.DEBUG or True:  # change to `or True` if you're okay serving from Django always
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve user-uploaded media from the mounted disk in ALL environments.
+urlpatterns += [
+    re_path(r"^media/(?P<path>.*)$", dj_serve, {"document_root": settings.MEDIA_ROOT}),
+]
